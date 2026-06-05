@@ -1471,7 +1471,7 @@
     "mtls-auth-server-ca-label": "CA",
     "mtls-auth-server-ca-placeholder": "Server CA",
     "avgPing": "Avg Ping",
-    "Uptime Kuma": "Uptime Kuma",
+    "Uptime Kuma": "ZMonitor",
     "maxPing": "Max Ping",
     "minPing": "Min Ping",
     "Setup Instructions": "Setup Instructions",

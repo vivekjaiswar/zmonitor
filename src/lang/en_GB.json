@@ -1508,7 +1508,7 @@
     "mtls-auth-server-cert-label": "Cert",
     "mtls-auth-server-cert-placeholder": "Cert body",
     "avgPing": "Avg Ping",
-    "Uptime Kuma": "Uptime Kuma",
+    "Uptime Kuma": "ZMonitor",
     "maxPing": "Max Ping",
     "minPing": "Min Ping",
     "Setup Instructions": "Setup Instructions",
