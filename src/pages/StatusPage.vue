@@ -571,7 +571,7 @@
                 <p v-if="config.showPoweredBy" data-testid="powered-by">
                     {{ $t("Powered by") }}
                     <a target="_blank" rel="noopener noreferrer" href="https://github.com/louislam/uptime-kuma">
-                        {{ $t("Uptime Kuma") }}
+                        {{ $t("ZMonitor") }}
                     </a>
                 </p>
 
