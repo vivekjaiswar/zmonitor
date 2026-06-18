@@ -3,7 +3,7 @@
         <div class="form">
             <form @submit.prevent="submit">
                 <div>
-                    <object width="64" height="64" data="/icon.svg" />
+                    <object width="64" height="64" src="/icon.png" />
                     <div style="font-size: 28px; font-weight: bold; margin-top: 5px">ZMonitor</div>
                 </div>
 
