@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 echo “=================================”
 echo “Installing ZMonitor Dependencies”
 echo “=================================”
@@ -9,7 +11,6 @@ sudo apt upgrade -y
 
 sudo apt install -y 
 docker.io 
-docker-compose-v2 
 nginx 
 curl 
 git 
@@ -28,7 +29,15 @@ echo “Nginx Version:”
 nginx -v
 
 echo “”
+echo “Creating ZMonitor directories…”
+
+sudo mkdir -p /opt/zmonitor
+sudo mkdir -p /opt/zmonitor/data
+
+echo “”
 echo “Base dependencies installed successfully.”
+
+echo “”
 echo “Next steps:”
 echo “1. Clone ZMonitor repository”
 echo “2. Build Docker image”
