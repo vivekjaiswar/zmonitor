@@ -19,7 +19,7 @@ export default {
             }
 
             if (this.status === 1) {
-                return "primary";
+                return "success";
             }
 
             if (this.status === 2) {

@@ -102,7 +102,7 @@ export default {
             if (this.theme === "dark") {
                 document.querySelector("#theme-color").setAttribute("content", "#161B22");
             } else {
-                document.querySelector("#theme-color").setAttribute("content", "#5cdd8b");
+                document.querySelector("#theme-color").setAttribute("content", "#146ed2");
             }
         },
     },
