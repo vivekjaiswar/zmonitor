@@ -1,60 +1,71 @@
-ZMonitor Installation Guide
+# ZMonitor Installation Guide
 
-Server Requirements
+No source code, no build step, no manual Docker commands — the installer pulls a
+prebuilt public image (`ghcr.io/vivekjaiswar/zmonitor`) and starts it for you.
 
-* Ubuntu 24.04 LTS
+## Server Requirements
+
+* Ubuntu 22.04 or 24.04 LTS
 * 2 vCPU minimum
 * 4 GB RAM minimum
 * 20 GB SSD minimum
-* Public IP or Elastic IP
-* Domain Name
+* Public IP (a domain name is optional, see below)
 
-Install Dependencies
+## Install
 
-chmod +x deploy/install-zmonitor.sh
-./deploy/install-zmonitor.sh
+Download and run the installer — it installs Docker if needed, pulls the ZMonitor
+image, and starts it:
 
-Clone Repository
+```bash
+curl -fsSL https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/deploy/install-zmonitor.sh -o install-zmonitor.sh
+chmod +x install-zmonitor.sh
+./install-zmonitor.sh
+```
 
-git clone <repository-url>
-cd zmonitor
+When it finishes it prints the URL to open, e.g. `http://<server-ip>:3001`.
 
-Build Docker Image
+### With a domain + automatic HTTPS
 
-docker build \
---target release \
--f docker/dockerfile \
--t zmonitor:latest .
+If you have a domain already pointed at the server's IP (an `A` record), pass it
+in and the installer also configures Nginx as a reverse proxy and issues a free
+Let's Encrypt certificate:
 
-Start Container
+```bash
+DOMAIN=monitor.example.com ./install-zmonitor.sh
+```
 
-docker run -d \
---name uptime-kuma \
---restart unless-stopped \
--p 3001:3001 \
--v /opt/zmonitor/data:/app/data \
-zmonitor:latest
+### Other options
 
-Configure Nginx
+Environment variables you can set before running the script:
 
-Proxy requests from port 80/443 to port 3001.
+| Variable            | Default         | Purpose                                  |
+|---------------------|------------------|-------------------------------------------|
+| `ZMONITOR_VERSION`  | `latest`         | Image tag to pull (e.g. a pinned release) |
+| `ZMONITOR_PORT`      | `3001`           | Host port to expose                       |
+| `ZMONITOR_DIR`       | `/opt/zmonitor`  | Where the compose file + data are stored  |
+| `DOMAIN`             | unset            | Enables Nginx + Let's Encrypt SSL          |
 
-Configure SSL
+The script is safe to re-run — running it again pulls the latest image and
+recreates the container in place, so it also doubles as the upgrade command.
 
-sudo certbot --nginx
+## Verify
 
-Verify
+```bash
+docker ps                 # container should show "healthy"
+docker logs zmonitor      # tail startup logs
+```
 
-* HTTPS works
-* Dashboard loads
-* Container is healthy
+## Backup
 
-docker ps
+All monitor data lives in the data directory (default `/opt/zmonitor/data`):
 
-Backup
+```bash
+tar -czvf zmonitor-data-backup-$(date +%F).tar.gz -C /opt/zmonitor data
+```
 
-tar -czvf zmonitor-data-backup-$(date +%F).tar.gz data
+## Restore
 
-Restore
-
-Extract backup and restart container.
+```bash
+tar -xzvf zmonitor-data-backup-<date>.tar.gz -C /opt/zmonitor
+cd /opt/zmonitor && docker compose up -d
+```
