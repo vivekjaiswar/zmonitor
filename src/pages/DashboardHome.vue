@@ -9,7 +9,7 @@
                 <div class="row">
                     <div class="col">
                         <h3>{{ $t("Up") }}</h3>
-                        <span class="num" :class="$root.stats.up === 0 && 'text-secondary'">
+                        <span class="num" :class="$root.stats.up > 0 ? 'text-success' : 'text-secondary'">
                             {{ $root.stats.up }}
                         </span>
                     </div>

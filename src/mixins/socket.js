@@ -768,7 +768,7 @@ export default {
                 } else if (lastHeartBeat.status === UP) {
                     result[monitorID] = {
                         text: this.$t("Up"),
-                        color: "primary",
+                        color: "success",
                     };
                 } else if (lastHeartBeat.status === DOWN) {
                     result[monitorID] = {

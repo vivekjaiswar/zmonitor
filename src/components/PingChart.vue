@@ -398,7 +398,7 @@ export default {
                 });
                 switch (beat.status) {
                     case MAINTENANCE:
-                        colorData.push("rgba(23 ,71, 245, 0.41)");
+                        colorData.push("rgba(124, 58, 237, 0.41)");
                         break;
                     case PENDING:
                         colorData.push("rgba(245, 182, 23, 0.41)");
@@ -547,8 +547,8 @@ export default {
                         data: minPingData,
                         fill: "origin",
                         tension: 0.2,
-                        borderColor: "#123163",
-                        backgroundColor: "#2F599C14",
+                        borderColor: "#126331",
+                        backgroundColor: "#2F9C5914",
                         yAxisID: "y",
                         label: this.$t("minPing"),
                     },
@@ -557,8 +557,8 @@ export default {
                         data: avgPingData,
                         fill: "origin",
                         tension: 0.2,
-                        borderColor: "#5C8BDD",
-                        backgroundColor: "#5C8BDD06",
+                        borderColor: "#5CDD8B",
+                        backgroundColor: "#5CDD8B06",
                         yAxisID: "y",
                         label: this.$t("avgPing"),
                     },
@@ -567,8 +567,8 @@ export default {
                         data: maxPingData,
                         fill: "origin",
                         tension: 0.2,
-                        borderColor: "#215AB5",
-                        backgroundColor: "#1E427A14",
+                        borderColor: "#21b55a",
+                        backgroundColor: "#1E7A4214",
                         yAxisID: "y",
                         label: this.$t("maxPing"),
                     },
