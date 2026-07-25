@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const { DOWN, UP } = require("../../src/util");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 class Alerta extends NotificationProvider {
     name = "alerta";
@@ -18,15 +19,17 @@ class Alerta extends NotificationProvider {
                     Authorization: "Key " + notification.alertaApiKey,
                 },
             };
+            const appName = await Settings.getAppName();
+            const appNameSlug = appName.toLowerCase().replace(/\s+/g, "-");
             let data = {
                 environment: notification.alertaEnvironment,
                 severity: "critical",
                 correlate: [],
-                service: ["UptimeKuma"],
+                service: [appName],
                 value: "Timeout",
-                tags: ["uptimekuma"],
+                tags: [appNameSlug],
                 attributes: {},
-                origin: "uptimekuma",
+                origin: appNameSlug,
                 type: "exceptionAlert",
             };
 
@@ -37,7 +40,7 @@ class Alerta extends NotificationProvider {
                     {
                         event: "msg",
                         text: msg,
-                        group: "uptimekuma-msg",
+                        group: `${appNameSlug}-msg`,
                         resource: "Message",
                     },
                     data
@@ -49,7 +52,7 @@ class Alerta extends NotificationProvider {
                     {
                         correlate: ["service_up", "service_down"],
                         event: monitorJSON["type"],
-                        group: "uptimekuma-" + monitorJSON["type"],
+                        group: appNameSlug + "-" + monitorJSON["type"],
                         resource: monitorJSON["name"],
                     },
                     data

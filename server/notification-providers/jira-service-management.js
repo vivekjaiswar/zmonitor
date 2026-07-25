@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { UP, DOWN } = require("../../src/util");
+const { Settings } = require("../settings");
 
 const okMsg = "Sent Successfully.";
 
@@ -13,18 +14,19 @@ class JiraServiceManagement extends NotificationProvider {
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
         const priority = notification.jsmPriority || 3;
         const baseUrl = `https://api.atlassian.com/jsm/ops/api/${notification.jsmCloudId}/v1`;
-        const textMsg = "ZMonitor Alert";
 
         try {
+            const appName = await Settings.getAppName();
+            const textMsg = `${appName} Alert`;
             if (heartbeatJSON == null) {
                 // Test notification
                 let notificationTestAlias = "uptime-kuma-notification-test";
                 let data = {
                     message: msg,
                     alias: notificationTestAlias,
-                    source: "ZMonitor",
+                    source: appName,
                     priority: "P5",
-                    tags: ["ZMonitor"],
+                    tags: [appName],
                 };
 
                 return this.post(notification, `${baseUrl}/alerts`, data);
@@ -35,9 +37,9 @@ class JiraServiceManagement extends NotificationProvider {
                     message: monitorJSON ? `${textMsg}: ${monitorJSON.name}` : textMsg,
                     alias: monitorJSON.name,
                     description: msg,
-                    source: "ZMonitor",
+                    source: appName,
                     priority: `P${priority}`,
-                    tags: ["ZMonitor"],
+                    tags: [appName],
                 };
 
                 return this.post(notification, `${baseUrl}/alerts`, data);
@@ -53,7 +55,7 @@ class JiraServiceManagement extends NotificationProvider {
 
                 const closeUrl = `${baseUrl}/alerts/${alertId}/close`;
                 let data = {
-                    source: "ZMonitor",
+                    source: appName,
                 };
 
                 return this.post(notification, closeUrl, data);

@@ -2,6 +2,7 @@ const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { setting } = require("../util-server");
 const { DOWN, UP, getMonitorRelativeURL } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class Teams extends NotificationProvider {
     name = "teams";
@@ -57,9 +58,10 @@ class Teams extends NotificationProvider {
      * @param {object} args.monitorJSON Monitor details
      * @param {string} args.dashboardUrl URL of the dashboard affected
      * @param {boolean} args.enableTags Whether to include tags in the notification
+     * @param {string} args.appName White-labelled application name
      * @returns {object} Notification payload
      */
-    _notificationPayloadFactory = ({ heartbeatJSON, monitorJSON, dashboardUrl, enableTags }) => {
+    _notificationPayloadFactory = ({ heartbeatJSON, monitorJSON, dashboardUrl, enableTags, appName }) => {
         const monitorUrl = this.extractAddress(monitorJSON);
         const monitorName = monitorJSON?.name;
         const status = heartbeatJSON?.status;
@@ -69,7 +71,7 @@ class Teams extends NotificationProvider {
         if (dashboardUrl) {
             actions.push({
                 type: "Action.OpenUrl",
-                title: "Visit ZMonitor",
+                title: `Visit ${appName}`,
                 url: dashboardUrl,
             });
         }
@@ -126,8 +128,8 @@ class Teams extends NotificationProvider {
                                         type: "Image",
                                         width: "32px",
                                         style: "Person",
-                                        url: "https://raw.githubusercontent.com/louislam/uptime-kuma/master/public/icon.png",
-                                        altText: "ZMonitor Logo",
+                                        url: "https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/public/icon.png",
+                                        altText: `${appName} Logo`,
                                     },
                                 ],
                             },
@@ -145,7 +147,7 @@ class Teams extends NotificationProvider {
                                         type: "TextBlock",
                                         size: "Small",
                                         weight: "Default",
-                                        text: "ZMonitor Alert",
+                                        text: `${appName} Alert`,
                                         isSubtle: true,
                                         spacing: "None",
                                     },
@@ -229,11 +231,12 @@ class Teams extends NotificationProvider {
      * @param {string} msg Message to send
      * @returns {Promise<void>}
      */
-    _handleGeneralNotification = (webhookUrl, msg) => {
+    _handleGeneralNotification = async (webhookUrl, msg) => {
         const payload = this._notificationPayloadFactory({
             heartbeatJSON: {
                 msg: msg,
             },
+            appName: await Settings.getAppName(),
         });
 
         return this._sendNotification(webhookUrl, payload);
@@ -262,6 +265,7 @@ class Teams extends NotificationProvider {
                 monitorJSON: monitorJSON,
                 dashboardUrl: dashboardUrl,
                 enableTags: notification.teamsEnableTags ?? false,
+                appName: await Settings.getAppName(),
             });
 
             await this._sendNotification(notification.webhookUrl, payload);

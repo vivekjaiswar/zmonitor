@@ -15,7 +15,8 @@ class Stackfield extends NotificationProvider {
         try {
             // Stackfield message formatting: https://www.stackfield.com/help/formatting-messages-2001
 
-            let textMsg = "+ZMonitor Alert+";
+            const appName = await Settings.getAppName();
+            let textMsg = `+${appName} Alert+`;
 
             if (monitorJSON && monitorJSON.name) {
                 textMsg += `\n*${monitorJSON.name}*`;

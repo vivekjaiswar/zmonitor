@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class Pumble extends NotificationProvider {
     name = "pumble";
@@ -17,7 +18,7 @@ class Pumble extends NotificationProvider {
                 let data = {
                     attachments: [
                         {
-                            title: "ZMonitor Alert",
+                            title: `${await Settings.getAppName()} Alert`,
                             text: msg,
                             color: "#5BDD8B",
                         },

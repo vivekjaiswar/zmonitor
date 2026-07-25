@@ -12,22 +12,23 @@ class Splunk extends NotificationProvider {
      */
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
         try {
+            const appName = await Settings.getAppName();
             if (heartbeatJSON == null) {
-                const title = "ZMonitor Alert";
+                const title = `${appName} Alert`;
                 const monitor = {
                     type: "ping",
-                    url: "ZMonitor Test Button",
+                    url: `${appName} Test Button`,
                 };
                 return this.postNotification(notification, title, msg, monitor, "trigger");
             }
 
             if (heartbeatJSON.status === UP) {
-                const title = "ZMonitor Monitor ✅ Up";
+                const title = `${appName} Monitor ✅ Up`;
                 return this.postNotification(notification, title, heartbeatJSON.msg, monitorJSON, "recovery");
             }
 
             if (heartbeatJSON.status === DOWN) {
-                const title = "ZMonitor Monitor 🔴 Down";
+                const title = `${appName} Monitor 🔴 Down`;
                 return this.postNotification(notification, title, heartbeatJSON.msg, monitorJSON, "trigger");
             }
         } catch (error) {
@@ -60,6 +61,7 @@ class Splunk extends NotificationProvider {
      * @returns {Promise<string>} Success state
      */
     async postNotification(notification, title, body, monitorInfo, eventAction = "trigger") {
+        const appName = await Settings.getAppName();
         let monitorUrl;
         if (monitorInfo.type === "port") {
             monitorUrl = monitorInfo.hostname;
@@ -88,15 +90,15 @@ class Splunk extends NotificationProvider {
             data: {
                 message_type: eventAction,
                 state_message: `[${title}] [${monitorUrl}] ${body}`,
-                entity_display_name: "ZMonitor Alert: " + monitorInfo.name,
+                entity_display_name: `${appName} Alert: ` + monitorInfo.name,
                 routing_key: notification.pagerdutyIntegrationKey,
-                entity_id: "ZMonitor/" + monitorInfo.id,
+                entity_id: appName + "/" + monitorInfo.id,
             },
         };
 
         const baseURL = await Settings.get("primaryBaseURL");
         if (baseURL && monitorInfo) {
-            options.client = "ZMonitor";
+            options.client = appName;
             options.client_url = baseURL + getMonitorRelativeURL(monitorInfo.id);
         }
 

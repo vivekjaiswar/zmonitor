@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class SevenIO extends NotificationProvider {
     name = "SevenIO";
@@ -13,7 +14,7 @@ class SevenIO extends NotificationProvider {
 
         const data = {
             to: notification.sevenioReceiver,
-            from: notification.sevenioSender || "ZMonitor",
+            from: notification.sevenioSender || (await Settings.getAppName()),
             text: msg,
         };
 

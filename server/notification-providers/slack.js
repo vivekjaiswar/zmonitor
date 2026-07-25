@@ -3,6 +3,7 @@ const axios = require("axios");
 const { setSettings, setting } = require("../util-server");
 const { getMonitorRelativeURL, UP, log } = require("../../src/util");
 const isUrl = require("is-url");
+const { Settings } = require("../settings");
 
 class Slack extends NotificationProvider {
     name = "slack";
@@ -29,11 +30,12 @@ class Slack extends NotificationProvider {
 
     /**
      * Builds the actions available in the slack message
-     * @param {string} baseURL ZMonitor base URL
+     * @param {string} baseURL Application base URL
      * @param {object} monitorJSON The monitor config
+     * @param {string} appName White-labelled application name
      * @returns {Array} The relevant action objects
      */
-    buildActions(baseURL, monitorJSON) {
+    buildActions(baseURL, monitorJSON, appName) {
         const actions = [];
 
         if (baseURL) {
@@ -41,7 +43,7 @@ class Slack extends NotificationProvider {
                 type: "button",
                 text: {
                     type: "plain_text",
-                    text: "Visit ZMonitor",
+                    text: `Visit ${appName}`,
                 },
                 value: "Uptime-Kuma",
                 url: baseURL + getMonitorRelativeURL(monitorJSON.id),
@@ -70,15 +72,16 @@ class Slack extends NotificationProvider {
 
     /**
      * Builds the different blocks the Slack message consists of.
-     * @param {string} baseURL ZMonitor base URL
+     * @param {string} baseURL Application base URL
      * @param {object} monitorJSON The monitor object
      * @param {object} heartbeatJSON The heartbeat object
      * @param {string} title The message title
      * @param {string} msg The message body
      * @param {boolean} includeGroupName Whether to include group name in the message
+     * @param {string} appName White-labelled application name
      * @returns {Array<object>} The rich content blocks for the Slack message
      */
-    buildBlocks(baseURL, monitorJSON, heartbeatJSON, title, msg, includeGroupName) {
+    buildBlocks(baseURL, monitorJSON, heartbeatJSON, title, msg, includeGroupName, appName) {
         //create an array to dynamically add blocks
         const blocks = [];
 
@@ -122,7 +125,7 @@ class Slack extends NotificationProvider {
             ],
         });
 
-        const actions = this.buildActions(baseURL, monitorJSON);
+        const actions = this.buildActions(baseURL, monitorJSON, appName);
         if (actions.length > 0) {
             //the actions block, containing buttons
             blocks.push({
@@ -184,7 +187,8 @@ class Slack extends NotificationProvider {
             const groupPath =
                 includeGroupName && monitorJSON?.path?.length > 1 ? monitorJSON.path.slice(0, -1).join(" / ") : "";
 
-            const title = monitorJSON?.name || "ZMonitor Alert";
+            const appName = await Settings.getAppName();
+            const title = monitorJSON?.name || `${appName} Alert`;
             let data = {
                 text: msg,
                 channel: notification.slackchannel,
@@ -196,7 +200,7 @@ class Slack extends NotificationProvider {
             if (notification.slackrichmessage) {
                 data.attachments.push({
                     color: heartbeatJSON["status"] === UP ? "#2eb886" : "#e01e5a",
-                    blocks: this.buildBlocks(baseURL, monitorJSON, heartbeatJSON, title, msg, includeGroupName),
+                    blocks: this.buildBlocks(baseURL, monitorJSON, heartbeatJSON, title, msg, includeGroupName, appName),
                 });
             } else {
                 // Include group name in plain text messages if enabled

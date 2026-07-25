@@ -12,8 +12,9 @@ class FlashDuty extends NotificationProvider {
      */
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
         try {
+            const appName = await Settings.getAppName();
             if (heartbeatJSON == null) {
-                const title = "ZMonitor Alert";
+                const title = `${appName} Alert`;
                 const monitor = {
                     type: "ping",
                     url: msg,
@@ -23,13 +24,13 @@ class FlashDuty extends NotificationProvider {
             }
 
             if (heartbeatJSON.status === UP) {
-                const title = "ZMonitor Monitor ✅ Up";
+                const title = `${appName} Monitor ✅ Up`;
 
                 return this.postNotification(notification, title, heartbeatJSON.msg, monitorJSON, "Ok");
             }
 
             if (heartbeatJSON.status === DOWN) {
-                const title = "ZMonitor Monitor 🔴 Down";
+                const title = `${appName} Monitor 🔴 Down`;
                 return this.postNotification(
                     notification,
                     title,
@@ -95,7 +96,7 @@ class FlashDuty extends NotificationProvider {
 
         const baseURL = await Settings.get("primaryBaseURL");
         if (baseURL && monitorInfo) {
-            options.client = "ZMonitor";
+            options.client = await Settings.getAppName();
             options.client_url = baseURL + getMonitorRelativeURL(monitorInfo.id);
         }
 

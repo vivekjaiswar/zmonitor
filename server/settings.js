@@ -134,6 +134,15 @@ class Settings {
     }
 
     /**
+     * Get the white-labelled application name for this instance, falling
+     * back to "ZMonitor" if the admin hasn't set a custom one.
+     * @returns {Promise<string>} Application name
+     */
+    static async getAppName() {
+        return (await Settings.get("customAppName")) || "ZMonitor";
+    }
+
+    /**
      * Delete selected keys from settings cache
      * @param {string[]} keyList Keys to remove
      * @returns {void}

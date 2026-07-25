@@ -1,6 +1,6 @@
 //
 //  bark.js
-//  UptimeKuma
+//  ZMonitor
 //
 //  Created by Lakr Aream on 2021/10/24.
 //  Copyright © 2021 Lakr Aream. All rights reserved.
@@ -9,10 +9,11 @@
 const NotificationProvider = require("./notification-provider");
 const { DOWN, UP } = require("../../src/util");
 const { default: axios } = require("axios");
+const { Settings } = require("../settings");
 
 // bark is an APN bridge that sends notifications to Apple devices.
 
-const barkNotificationAvatar = "https://github.com/louislam/uptime-kuma/raw/master/public/icon.png";
+const barkNotificationAvatar = "https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/public/icon.png";
 const successMessage = "Successes!";
 
 class Bark extends NotificationProvider {
@@ -29,19 +30,21 @@ class Bark extends NotificationProvider {
             barkEndpoint = barkEndpoint.substring(0, barkEndpoint.length - 1);
         }
 
+        const appName = await Settings.getAppName();
+
         if (msg != null && heartbeatJSON != null && heartbeatJSON["status"] === UP) {
-            let title = "UptimeKuma Monitor Up";
-            return await this.postNotification(notification, title, msg, barkEndpoint);
+            let title = `${appName} Monitor Up`;
+            return await this.postNotification(notification, title, msg, barkEndpoint, appName);
         }
 
         if (msg != null && heartbeatJSON != null && heartbeatJSON["status"] === DOWN) {
-            let title = "UptimeKuma Monitor Down";
-            return await this.postNotification(notification, title, msg, barkEndpoint);
+            let title = `${appName} Monitor Down`;
+            return await this.postNotification(notification, title, msg, barkEndpoint, appName);
         }
 
         if (msg != null) {
-            let title = "UptimeKuma Message";
-            return await this.postNotification(notification, title, msg, barkEndpoint);
+            let title = `${appName} Message`;
+            return await this.postNotification(notification, title, msg, barkEndpoint, appName);
         }
     }
 
@@ -49,17 +52,18 @@ class Bark extends NotificationProvider {
      * Add additional parameter for Bark v1 endpoints.
      * Leads to better on device styles (iOS 15 optimized)
      * @param {BeanModel} notification Notification to send
+     * @param {string} appName White-labelled application name
      * @returns {string} Additional URL parameters
      */
-    additionalParameters(notification) {
-        // set icon to uptime kuma icon, 11kb should be fine
+    additionalParameters(notification, appName) {
+        // set icon to the app's icon, 11kb should be fine
         let params = "?icon=" + barkNotificationAvatar;
         // grouping all our notifications
         if (notification.barkGroup != null) {
             params += "&group=" + notification.barkGroup;
         } else {
             // default name
-            params += "&group=" + "UptimeKuma";
+            params += "&group=" + appName;
         }
         // picked a sound, this should follow system's mute status when arrival
         if (notification.barkSound != null) {
@@ -92,16 +96,17 @@ class Bark extends NotificationProvider {
      * @param {string} title Message title
      * @param {string} subtitle Message
      * @param {string} endpoint Endpoint to send request to
+     * @param {string} appName White-labelled application name
      * @returns {Promise<string>} Success message
      */
-    async postNotification(notification, title, subtitle, endpoint) {
+    async postNotification(notification, title, subtitle, endpoint, appName) {
         let result;
         let config = this.getAxiosConfigWithProxy({});
         if (notification.apiVersion === "v1" || notification.apiVersion == null) {
             // url encode title and subtitle
             title = encodeURIComponent(title);
             subtitle = encodeURIComponent(subtitle);
-            const params = this.additionalParameters(notification);
+            const params = this.additionalParameters(notification, appName);
             result = await axios.get(`${endpoint}/${title}/${subtitle}${params}`, config);
         } else {
             result = await axios.post(
@@ -111,7 +116,7 @@ class Bark extends NotificationProvider {
                     body: subtitle,
                     icon: barkNotificationAvatar,
                     sound: notification.barkSound || "telegraph", // default sound is telegraph
-                    group: notification.barkGroup || "UptimeKuma", // default group is UptimeKuma
+                    group: notification.barkGroup || appName, // default group is the app name
                 },
                 config
             );

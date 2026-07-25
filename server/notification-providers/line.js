@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class Line extends NotificationProvider {
     name = "line";
@@ -20,6 +21,7 @@ class Line extends NotificationProvider {
                 },
             };
             config = this.getAxiosConfigWithProxy(config);
+            const appName = await Settings.getAppName();
             if (heartbeatJSON == null) {
                 let testMessage = {
                     to: notification.lineUserID,
@@ -38,7 +40,7 @@ class Line extends NotificationProvider {
                         {
                             type: "text",
                             text:
-                                "UptimeKuma Alert: [🔴 Down]\n" +
+                                `${appName} Alert: [🔴 Down]\n` +
                                 "Name: " +
                                 monitorJSON["name"] +
                                 " \n" +
@@ -55,7 +57,7 @@ class Line extends NotificationProvider {
                         {
                             type: "text",
                             text:
-                                "UptimeKuma Alert: [✅ Up]\n" +
+                                `${appName} Alert: [✅ Up]\n` +
                                 "Name: " +
                                 monitorJSON["name"] +
                                 " \n" +

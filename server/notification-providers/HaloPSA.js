@@ -1,5 +1,6 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 /**
  * Halo PSA notification provider implementation
@@ -23,6 +24,7 @@ class HaloPSA extends NotificationProvider {
         const okMsg = "Sent successfully.";
 
         try {
+            const appName = await Settings.getAppName();
             // Determine status based on heartbeat
             let status = "UNKNOWN";
             if (heartbeatJSON?.status === 1) {
@@ -38,7 +40,7 @@ class HaloPSA extends NotificationProvider {
              * @type {object}
              */
             const payload = {
-                title: "ZMonitor Alert",
+                title: `${appName} Alert`,
                 status: status,
                 monitor: monitorJSON?.name || "No Monitor",
                 monitor_id: monitorJSON?.id || null,

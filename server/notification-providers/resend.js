@@ -1,5 +1,6 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 class Resend extends NotificationProvider {
     name = "Resend";
@@ -20,11 +21,12 @@ class Resend extends NotificationProvider {
             config = this.getAxiosConfigWithProxy(config);
             const email = notification.resendFromEmail.trim();
 
-            const fromName = notification.resendFromName?.trim() || "ZMonitor";
+            const appName = await Settings.getAppName();
+            const fromName = notification.resendFromName?.trim() || appName;
             let data = {
                 from: `${fromName} <${email}>`,
                 to: notification.resendToEmail,
-                subject: notification.resendSubject || "Notification from Your ZMonitor",
+                subject: notification.resendSubject || `Notification from Your ${appName}`,
                 // supplied text directly instead of html
                 text: msg,
             };

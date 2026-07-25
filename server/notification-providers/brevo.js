@@ -1,5 +1,6 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 class Brevo extends NotificationProvider {
     name = "Brevo";
@@ -11,6 +12,7 @@ class Brevo extends NotificationProvider {
         const okMsg = "Sent Successfully.";
 
         try {
+            const appName = await Settings.getAppName();
             let config = {
                 headers: {
                     Accept: "application/json",
@@ -25,10 +27,10 @@ class Brevo extends NotificationProvider {
             let data = {
                 sender: {
                     email: notification.brevoFromEmail.trim(),
-                    name: notification.brevoFromName || "ZMonitor",
+                    name: notification.brevoFromName || appName,
                 },
                 to: to,
-                subject: notification.brevoSubject || "Notification from Your ZMonitor",
+                subject: notification.brevoSubject || `Notification from Your ${appName}`,
                 htmlContent: `<html><head></head><body><p>${msg.replace(/\n/g, "<br>")}</p></body></html>`,
             };
 

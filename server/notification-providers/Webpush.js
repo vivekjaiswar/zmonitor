@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const webpush = require("web-push");
 const { setting } = require("../util-server");
+const { Settings } = require("../settings");
 
 class Webpush extends NotificationProvider {
     name = "Webpush";
@@ -18,7 +19,7 @@ class Webpush extends NotificationProvider {
             webpush.setVapidDetails("https://github.com/louislam/uptime-kuma", publicVapidKey, privateVapidKey);
 
             const data = JSON.stringify({
-                title: "ZMonitor",
+                title: await Settings.getAppName(),
                 body: msg,
             });
 

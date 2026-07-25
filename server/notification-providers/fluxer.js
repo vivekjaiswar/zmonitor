@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class Fluxer extends NotificationProvider {
     name = "fluxer";
@@ -13,7 +14,7 @@ class Fluxer extends NotificationProvider {
 
         try {
             let config = this.getAxiosConfigWithProxy({});
-            const fluxerDisplayName = notification.fluxerUsername || "ZMonitor";
+            const fluxerDisplayName = notification.fluxerUsername || (await Settings.getAppName());
             const webhookUrl = new URL(notification.fluxerWebhookUrl);
 
             // Check if the webhook has an avatar

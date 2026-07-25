@@ -12,6 +12,8 @@ class PagerTree extends NotificationProvider {
      */
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
         try {
+            const appName = await Settings.getAppName();
+
             if (heartbeatJSON == null) {
                 // general messages
                 return this.postNotification(notification, msg, monitorJSON, heartbeatJSON);
@@ -28,7 +30,7 @@ class PagerTree extends NotificationProvider {
             }
 
             if (heartbeatJSON.status === DOWN) {
-                const title = `ZMonitor Monitor "${monitorJSON.name}" is DOWN`;
+                const title = `${appName} Monitor "${monitorJSON.name}" is DOWN`;
                 return this.postNotification(notification, title, monitorJSON, heartbeatJSON);
             }
         } catch (error) {
@@ -81,7 +83,7 @@ class PagerTree extends NotificationProvider {
 
         const baseURL = await Settings.get("primaryBaseURL");
         if (baseURL && monitorJSON) {
-            options.client = "ZMonitor";
+            options.client = await Settings.getAppName();
             options.client_url = baseURL + getMonitorRelativeURL(monitorJSON.id);
         }
 

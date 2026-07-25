@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class SpugPush extends NotificationProvider {
     name = "SpugPush";
@@ -11,16 +12,17 @@ class SpugPush extends NotificationProvider {
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
         let okMsg = "Sent Successfully.";
         try {
+            const appName = await Settings.getAppName();
             let formData = {
-                title: "ZMonitor Message",
+                title: `${appName} Message`,
                 content: msg,
             };
             if (heartbeatJSON) {
                 if (heartbeatJSON["status"] === UP) {
-                    formData.title = `UptimeKuma 「${monitorJSON["name"]}」 is Up`;
+                    formData.title = `${appName} 「${monitorJSON["name"]}」 is Up`;
                     formData.content = `[✅ Up] ${heartbeatJSON["msg"]}`;
                 } else if (heartbeatJSON["status"] === DOWN) {
-                    formData.title = `UptimeKuma 「${monitorJSON["name"]}」 is Down`;
+                    formData.title = `${appName} 「${monitorJSON["name"]}」 is Down`;
                     formData.content = `[🔴 Down] ${heartbeatJSON["msg"]}`;
                 }
             }

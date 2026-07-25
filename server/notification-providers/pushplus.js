@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class PushPlus extends NotificationProvider {
     name = "PushPlus";
@@ -25,7 +26,7 @@ class PushPlus extends NotificationProvider {
             config = this.getAxiosConfigWithProxy(config);
             const params = {
                 token: notification.pushPlusSendKey,
-                title: this.checkStatus(heartbeatJSON, monitorJSON),
+                title: await this.checkStatus(heartbeatJSON, monitorJSON),
                 content: msg,
                 template: "html",
             };
@@ -40,15 +41,16 @@ class PushPlus extends NotificationProvider {
      * Get the formatted title for message
      * @param {?object} heartbeatJSON Heartbeat details (For Up/Down only)
      * @param {?object} monitorJSON Monitor details (For Up/Down only)
-     * @returns {string} Formatted title
+     * @returns {Promise<string>} Formatted title
      */
-    checkStatus(heartbeatJSON, monitorJSON) {
-        let title = "UptimeKuma Message";
+    async checkStatus(heartbeatJSON, monitorJSON) {
+        const appName = await Settings.getAppName();
+        let title = `${appName} Message`;
         if (heartbeatJSON != null && heartbeatJSON["status"] === UP) {
-            title = "UptimeKuma Monitor Up " + monitorJSON["name"];
+            title = `${appName} Monitor Up ` + monitorJSON["name"];
         }
         if (heartbeatJSON != null && heartbeatJSON["status"] === DOWN) {
-            title = "UptimeKuma Monitor Down " + monitorJSON["name"];
+            title = `${appName} Monitor Down ` + monitorJSON["name"];
         }
         return title;
     }

@@ -36,6 +36,7 @@ class GoogleChat extends NotificationProvider {
         };
 
         try {
+            const appName = await Settings.getAppName();
             let config = this.getAxiosConfigWithProxy({});
             // Google Chat message formatting: https://developers.google.com/chat/api/guides/message-formats/basic
             if (notification.googleChatUseTemplate && notification.googleChatTemplate) {
@@ -52,7 +53,7 @@ class GoogleChat extends NotificationProvider {
             }
 
             let chatHeader = {
-                title: "ZMonitor Alert",
+                title: `${appName} Alert`,
             };
 
             if (monitorJSON && heartbeatJSON) {
@@ -98,7 +99,7 @@ class GoogleChat extends NotificationProvider {
                     buttonList: {
                         buttons: [
                             {
-                                text: "Visit ZMonitor",
+                                text: `Visit ${appName}`,
                                 onClick: {
                                     openLink: {
                                         url: baseURL + urlPath,

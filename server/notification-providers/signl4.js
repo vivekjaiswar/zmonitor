@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { UP, DOWN } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class SIGNL4 extends NotificationProvider {
     name = "SIGNL4";
@@ -12,12 +13,14 @@ class SIGNL4 extends NotificationProvider {
         const okMsg = "Sent Successfully.";
 
         try {
+            const appName = await Settings.getAppName();
+            const appNameSlug = appName.toLowerCase().replace(/\s+/g, "-");
             let data = {
                 heartbeat: heartbeatJSON,
                 monitor: monitorJSON,
                 msg,
                 // Source system
-                "X-S4-SourceSystem": "UptimeKuma",
+                "X-S4-SourceSystem": appName,
                 monitorUrl: this.extractAddress(monitorJSON),
             };
 
@@ -30,15 +33,15 @@ class SIGNL4 extends NotificationProvider {
 
             if (heartbeatJSON == null) {
                 // Test alert
-                data.title = "ZMonitor Alert";
+                data.title = `${appName} Alert`;
                 data.message = msg;
             } else if (heartbeatJSON.status === UP) {
-                data.title = "ZMonitor Monitor ✅ Up";
-                data["X-S4-ExternalID"] = "UptimeKuma-" + monitorJSON.monitorID;
+                data.title = `${appName} Monitor ✅ Up`;
+                data["X-S4-ExternalID"] = `${appNameSlug}-` + monitorJSON.monitorID;
                 data["X-S4-Status"] = "resolved";
             } else if (heartbeatJSON.status === DOWN) {
-                data.title = "ZMonitor Monitor 🔴 Down";
-                data["X-S4-ExternalID"] = "UptimeKuma-" + monitorJSON.monitorID;
+                data.title = `${appName} Monitor 🔴 Down`;
+                data["X-S4-ExternalID"] = `${appNameSlug}-` + monitorJSON.monitorID;
                 data["X-S4-Status"] = "new";
             }
 

@@ -1,5 +1,6 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 class SendGrid extends NotificationProvider {
     name = "SendGrid";
@@ -37,7 +38,7 @@ class SendGrid extends NotificationProvider {
             let data = {
                 personalizations: [personalizations],
                 from: { email: notification.sendgridFromEmail.trim() },
-                subject: notification.sendgridSubject || "Notification from Your ZMonitor",
+                subject: notification.sendgridSubject || `Notification from Your ${await Settings.getAppName()}`,
                 content: [
                     {
                         type: "text/plain",

@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class Mattermost extends NotificationProvider {
     name = "mattermost";
@@ -13,7 +14,7 @@ class Mattermost extends NotificationProvider {
 
         try {
             let config = this.getAxiosConfigWithProxy({});
-            const mattermostUserName = notification.mattermostusername || "ZMonitor";
+            const mattermostUserName = notification.mattermostusername || (await Settings.getAppName());
             // If heartbeatJSON is null, assume non monitoring notification (Certificate warning) or testing.
             if (heartbeatJSON == null) {
                 let mattermostTestData = {

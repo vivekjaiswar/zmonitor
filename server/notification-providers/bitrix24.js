@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class Bitrix24 extends NotificationProvider {
     name = "Bitrix24";
@@ -14,7 +15,7 @@ class Bitrix24 extends NotificationProvider {
         try {
             const params = {
                 user_id: notification.bitrix24UserID,
-                message: "[B]ZMonitor[/B]",
+                message: `[B]${await Settings.getAppName()}[/B]`,
                 "ATTACH[COLOR]": (heartbeatJSON ?? {})["status"] === UP ? "#b73419" : "#67b518",
                 "ATTACH[BLOCKS][0][MESSAGE]": msg,
             };

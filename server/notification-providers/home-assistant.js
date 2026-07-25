@@ -1,5 +1,6 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 const defaultNotificationService = "notify";
 
@@ -22,17 +23,18 @@ class HomeAssistant extends NotificationProvider {
                 },
             };
             config = this.getAxiosConfigWithProxy(config);
+            const appName = await Settings.getAppName();
             await axios.post(
                 `${notification.homeAssistantUrl.trim().replace(/\/*$/, "")}/api/services/notify/${notificationService}`,
                 {
-                    title: "ZMonitor",
+                    title: appName,
                     message: msg,
                     ...(notificationService !== "persistent_notification" && {
                         data: {
                             name: monitorJSON?.name,
                             status: heartbeatJSON?.status,
-                            channel: "ZMonitor",
-                            icon_url: "https://github.com/louislam/uptime-kuma/blob/master/public/icon.png?raw=true",
+                            channel: appName,
+                            icon_url: "https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/public/icon.png",
                         },
                     }),
                 },

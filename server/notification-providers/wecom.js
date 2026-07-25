@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class WeCom extends NotificationProvider {
     name = "WeCom";
@@ -18,7 +19,7 @@ class WeCom extends NotificationProvider {
                 },
             };
             config = this.getAxiosConfigWithProxy(config);
-            let body = this.composeMessage(notification, heartbeatJSON, msg);
+            let body = await this.composeMessage(notification, heartbeatJSON, msg);
             await axios.post(
                 `https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=${notification.weComBotKey}`,
                 body,
@@ -35,15 +36,16 @@ class WeCom extends NotificationProvider {
      * @param {object} notification Notification configuration
      * @param {object} heartbeatJSON Heartbeat details (For Up/Down only)
      * @param {string} msg General message
-     * @returns {object} Message
+     * @returns {Promise<object>} Message
      */
-    composeMessage(notification, heartbeatJSON, msg) {
-        let title = "UptimeKuma Message";
+    async composeMessage(notification, heartbeatJSON, msg) {
+        const appName = await Settings.getAppName();
+        let title = `${appName} Message`;
         if (msg != null && heartbeatJSON != null && heartbeatJSON["status"] === UP) {
-            title = "UptimeKuma Monitor Up";
+            title = `${appName} Monitor Up`;
         }
         if (msg != null && heartbeatJSON != null && heartbeatJSON["status"] === DOWN) {
-            title = "UptimeKuma Monitor Down";
+            title = `${appName} Monitor Down`;
         }
 
         let textObj = {

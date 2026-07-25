@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class Feishu extends NotificationProvider {
     name = "Feishu";
@@ -12,6 +13,7 @@ class Feishu extends NotificationProvider {
         const okMsg = "Sent Successfully.";
 
         try {
+            const appName = await Settings.getAppName();
             let config = this.getAxiosConfigWithProxy({});
             if (heartbeatJSON == null) {
                 let testdata = {
@@ -35,7 +37,7 @@ class Feishu extends NotificationProvider {
                         header: {
                             title: {
                                 tag: "plain_text",
-                                content: "UptimeKuma Alert: [Down] " + monitorJSON["name"],
+                                content: `${appName} Alert: [Down] ` + monitorJSON["name"],
                             },
                             template: "red",
                         },
@@ -65,7 +67,7 @@ class Feishu extends NotificationProvider {
                         header: {
                             title: {
                                 tag: "plain_text",
-                                content: "UptimeKuma Alert: [UP] " + monitorJSON["name"],
+                                content: `${appName} Alert: [UP] ` + monitorJSON["name"],
                             },
                             template: "green",
                         },

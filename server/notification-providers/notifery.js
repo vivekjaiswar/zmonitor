@@ -1,5 +1,6 @@
 const { getMonitorRelativeURL, UP } = require("../../src/util");
 const { setting } = require("../util-server");
+const { Settings } = require("../settings");
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 
@@ -14,7 +15,7 @@ class Notifery extends NotificationProvider {
         const url = "https://api.notifery.com/event";
 
         let data = {
-            title: notification.notiferyTitle || "ZMonitor Alert",
+            title: notification.notiferyTitle || `${await Settings.getAppName()} Alert`,
             message: msg,
         };
 

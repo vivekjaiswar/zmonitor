@@ -12,22 +12,23 @@ class PagerDuty extends NotificationProvider {
      */
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
         try {
+            const appName = await Settings.getAppName();
             if (heartbeatJSON == null) {
-                const title = "ZMonitor Alert";
+                const title = `${appName} Alert`;
                 const monitor = {
                     type: "ping",
-                    url: "ZMonitor Test Button",
+                    url: `${appName} Test Button`,
                 };
                 return this.postNotification(notification, title, msg, monitor);
             }
 
             if (heartbeatJSON.status === UP) {
-                const title = "ZMonitor Monitor ✅ Up";
+                const title = `${appName} Monitor ✅ Up`;
                 return this.postNotification(notification, title, heartbeatJSON.msg, monitorJSON, "resolve");
             }
 
             if (heartbeatJSON.status === DOWN) {
-                const title = "ZMonitor Monitor 🔴 Down";
+                const title = `${appName} Monitor 🔴 Down`;
                 return this.postNotification(notification, title, heartbeatJSON.msg, monitorJSON, "trigger");
             }
         } catch (error) {
@@ -60,6 +61,7 @@ class PagerDuty extends NotificationProvider {
      * @returns {Promise<string>} Success message
      */
     async postNotification(notification, title, body, monitorInfo, eventAction = "trigger") {
+        const appName = await Settings.getAppName();
         let monitorUrl;
         if (monitorInfo.type === "port") {
             monitorUrl = monitorInfo.hostname;
@@ -91,13 +93,13 @@ class PagerDuty extends NotificationProvider {
                 },
                 routing_key: notification.pagerdutyIntegrationKey,
                 event_action: eventAction,
-                dedup_key: monitorInfo.id ? "ZMonitor/" + monitorInfo.id : "ZMonitor/test",
+                dedup_key: monitorInfo.id ? appName + "/" + monitorInfo.id : appName + "/test",
             },
         };
 
         const baseURL = await Settings.get("primaryBaseURL");
         if (baseURL && monitorInfo) {
-            options.client = "ZMonitor";
+            options.client = appName;
             options.client_url = baseURL + getMonitorRelativeURL(monitorInfo.id);
         }
 

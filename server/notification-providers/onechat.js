@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class OneChat extends NotificationProvider {
     name = "OneChat";
@@ -20,6 +21,7 @@ class OneChat extends NotificationProvider {
                 },
             };
             config = this.getAxiosConfigWithProxy(config);
+            const appName = await Settings.getAppName();
             if (heartbeatJSON == null) {
                 const testMessage = {
                     to: notification.recieverId,
@@ -33,7 +35,7 @@ class OneChat extends NotificationProvider {
                     to: notification.recieverId,
                     bot_id: notification.botId,
                     type: "text",
-                    message: `UptimeKuma Alert:
+                    message: `${appName} Alert:
 [🔴 Down]
 Name: ${monitorJSON["name"]}
 ${heartbeatJSON["msg"]}
@@ -45,7 +47,7 @@ Time (${heartbeatJSON["timezone"]}): ${heartbeatJSON["localDateTime"]}`,
                     to: notification.recieverId,
                     bot_id: notification.botId,
                     type: "text",
-                    message: `UptimeKuma Alert:
+                    message: `${appName} Alert:
 [🟢 Up]
 Name: ${monitorJSON["name"]}
 ${heartbeatJSON["msg"]}

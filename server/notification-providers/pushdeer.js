@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class PushDeer extends NotificationProvider {
     name = "PushDeer";
@@ -14,15 +15,16 @@ class PushDeer extends NotificationProvider {
         // capture group below is necessary to prevent an ReDOS-attack
         const url = `${serverUrl.trim().replace(/([^/])\/+$/, "$1")}/message/push`;
 
+        const appName = await Settings.getAppName();
         let valid = msg != null && monitorJSON != null && heartbeatJSON != null;
 
         let title;
         if (valid && heartbeatJSON.status === UP) {
-            title = "## ZMonitor: " + monitorJSON.name + " up";
+            title = `## ${appName}: ` + monitorJSON.name + " up";
         } else if (valid && heartbeatJSON.status === DOWN) {
-            title = "## ZMonitor: " + monitorJSON.name + " down";
+            title = `## ${appName}: ` + monitorJSON.name + " down";
         } else {
-            title = "## ZMonitor Message";
+            title = `## ${appName} Message`;
         }
 
         let data = {

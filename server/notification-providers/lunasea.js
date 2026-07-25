@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class LunaSea extends NotificationProvider {
     name = "lunasea";
@@ -13,11 +14,12 @@ class LunaSea extends NotificationProvider {
         const url = "https://notify.lunasea.app/v1";
 
         try {
+            const appName = await Settings.getAppName();
             let config = this.getAxiosConfigWithProxy({});
             const target = this.getTarget(notification);
             if (heartbeatJSON == null) {
                 let testdata = {
-                    title: "ZMonitor Alert",
+                    title: `${appName} Alert`,
                     body: msg,
                 };
                 await axios.post(`${url}/custom/${target}`, testdata, config);
@@ -26,7 +28,7 @@ class LunaSea extends NotificationProvider {
 
             if (heartbeatJSON["status"] === DOWN) {
                 let downdata = {
-                    title: "UptimeKuma Alert: " + monitorJSON["name"],
+                    title: `${appName} Alert: ` + monitorJSON["name"],
                     body:
                         "[🔴 Down] " +
                         heartbeatJSON["msg"] +
@@ -38,7 +40,7 @@ class LunaSea extends NotificationProvider {
 
             if (heartbeatJSON["status"] === UP) {
                 let updata = {
-                    title: "UptimeKuma Alert: " + monitorJSON["name"],
+                    title: `${appName} Alert: ` + monitorJSON["name"],
                     body:
                         "[✅ Up] " +
                         heartbeatJSON["msg"] +

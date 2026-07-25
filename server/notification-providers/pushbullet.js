@@ -2,6 +2,7 @@ const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class Pushbullet extends NotificationProvider {
     name = "pushbullet";
@@ -21,17 +22,18 @@ class Pushbullet extends NotificationProvider {
                 },
             };
             config = this.getAxiosConfigWithProxy(config);
+            const appName = await Settings.getAppName();
             if (heartbeatJSON == null) {
                 let data = {
                     type: "note",
-                    title: "ZMonitor Alert",
+                    title: `${appName} Alert`,
                     body: msg,
                 };
                 await axios.post(url, data, config);
             } else if (heartbeatJSON["status"] === DOWN) {
                 let downData = {
                     type: "note",
-                    title: "UptimeKuma Alert: " + monitorJSON["name"],
+                    title: `${appName} Alert: ` + monitorJSON["name"],
                     body:
                         "[🔴 Down] " +
                         heartbeatJSON["msg"] +
@@ -41,7 +43,7 @@ class Pushbullet extends NotificationProvider {
             } else if (heartbeatJSON["status"] === UP) {
                 let upData = {
                     type: "note",
-                    title: "UptimeKuma Alert: " + monitorJSON["name"],
+                    title: `${appName} Alert: ` + monitorJSON["name"],
                     body:
                         "[✅ Up] " +
                         heartbeatJSON["msg"] +

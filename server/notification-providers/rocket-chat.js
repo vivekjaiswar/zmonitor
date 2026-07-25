@@ -14,6 +14,7 @@ class RocketChat extends NotificationProvider {
         const okMsg = "Sent Successfully.";
 
         try {
+            const appName = await Settings.getAppName();
             let config = this.getAxiosConfigWithProxy({});
             if (heartbeatJSON == null) {
                 let data = {
@@ -27,13 +28,13 @@ class RocketChat extends NotificationProvider {
             }
 
             let data = {
-                text: "ZMonitor Alert",
+                text: `${appName} Alert`,
                 channel: notification.rocketchannel,
                 username: notification.rocketusername,
                 icon_emoji: notification.rocketiconemo,
                 attachments: [
                     {
-                        title: `ZMonitor Alert *Time (${heartbeatJSON["timezone"]})*\n${heartbeatJSON["localDateTime"]}`,
+                        title: `${appName} Alert *Time (${heartbeatJSON["timezone"]})*\n${heartbeatJSON["localDateTime"]}`,
                         text: "*Message*\n" + msg,
                     },
                 ],

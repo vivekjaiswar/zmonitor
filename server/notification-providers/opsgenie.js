@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { UP, DOWN } = require("../../src/util");
+const { Settings } = require("../settings");
 
 const opsgenieAlertsUrlEU = "https://api.eu.opsgenie.com/v2/alerts";
 const opsgenieAlertsUrlUS = "https://api.opsgenie.com/v2/alerts";
@@ -15,9 +16,10 @@ class Opsgenie extends NotificationProvider {
     async send(notification, msg, monitorJSON = null, heartbeatJSON = null) {
         let opsgenieAlertsUrl;
         let priority = !notification.opsgeniePriority ? 3 : notification.opsgeniePriority;
-        const textMsg = "ZMonitor Alert";
 
         try {
+            const appName = await Settings.getAppName();
+            const textMsg = `${appName} Alert`;
             switch (notification.opsgenieRegion) {
                 case "us":
                     opsgenieAlertsUrl = opsgenieAlertsUrlUS;
@@ -34,7 +36,7 @@ class Opsgenie extends NotificationProvider {
                 let data = {
                     message: msg,
                     alias: notificationTestAlias,
-                    source: "ZMonitor",
+                    source: appName,
                     priority: "P5",
                 };
 
@@ -46,7 +48,7 @@ class Opsgenie extends NotificationProvider {
                     message: monitorJSON ? textMsg + `: ${monitorJSON.name}` : textMsg,
                     alias: monitorJSON.name,
                     description: msg,
-                    source: "ZMonitor",
+                    source: appName,
                     priority: `P${priority}`,
                 };
 
@@ -56,7 +58,7 @@ class Opsgenie extends NotificationProvider {
             if (heartbeatJSON.status === UP) {
                 let opsgenieAlertsCloseUrl = `${opsgenieAlertsUrl}/${encodeURIComponent(monitorJSON.name)}/close?identifierType=alias`;
                 let data = {
-                    source: "ZMonitor",
+                    source: appName,
                 };
 
                 return this.post(notification, opsgenieAlertsCloseUrl, data);

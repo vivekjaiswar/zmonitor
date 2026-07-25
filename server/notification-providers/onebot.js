@@ -1,5 +1,6 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 class OneBot extends NotificationProvider {
     name = "OneBot";
@@ -26,7 +27,7 @@ class OneBot extends NotificationProvider {
                 },
             };
             config = this.getAxiosConfigWithProxy(config);
-            let pushText = "UptimeKuma Alert: " + msg;
+            let pushText = `${await Settings.getAppName()} Alert: ` + msg;
             let data = {
                 auto_escape: true,
                 message: pushText,

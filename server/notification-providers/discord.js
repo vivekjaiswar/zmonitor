@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN, UP } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class Discord extends NotificationProvider {
     name = "discord";
@@ -18,7 +19,7 @@ class Discord extends NotificationProvider {
 
         try {
             let config = this.getAxiosConfigWithProxy({});
-            const discordDisplayName = notification.discordUsername || "ZMonitor";
+            const discordDisplayName = notification.discordUsername || (await Settings.getAppName());
             const webhookUrl = new URL(notification.discordWebhookUrl);
             if (notification.discordChannelType === "postToThread") {
                 webhookUrl.searchParams.append("thread_id", notification.threadId);
