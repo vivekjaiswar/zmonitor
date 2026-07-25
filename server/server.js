@@ -58,15 +58,15 @@ if (!process.env.NODE_ENV) {
     process.env.NODE_ENV = "production";
 }
 
-if (!process.env.UPTIME_KUMA_WS_ORIGIN_CHECK) {
-    process.env.UPTIME_KUMA_WS_ORIGIN_CHECK = "cors-like";
+if (!process.env.ZMONITOR_WS_ORIGIN_CHECK) {
+    process.env.ZMONITOR_WS_ORIGIN_CHECK = "cors-like";
 }
 
 log.info("server", "Env: " + process.env.NODE_ENV);
-log.debug("server", "Inside Container: " + (process.env.UPTIME_KUMA_IS_CONTAINER === "1"));
+log.debug("server", "Inside Container: " + (process.env.ZMONITOR_IS_CONTAINER === "1"));
 
-if (process.env.UPTIME_KUMA_WS_ORIGIN_CHECK === "bypass") {
-    log.warn("server", "WebSocket Origin Check: " + process.env.UPTIME_KUMA_WS_ORIGIN_CHECK);
+if (process.env.ZMONITOR_WS_ORIGIN_CHECK === "bypass") {
+    log.warn("server", "WebSocket Origin Check: " + process.env.ZMONITOR_WS_ORIGIN_CHECK);
 }
 
 const checkVersion = require("./check-version");
@@ -92,8 +92,8 @@ log.debug("server", "Importing 2FA Modules");
 const notp = require("notp");
 const base32 = require("thirty-two");
 
-const { UptimeKumaServer } = require("./uptime-kuma-server");
-const server = UptimeKumaServer.getInstance();
+const { ZMonitorServer } = require("./zmonitor-server");
+const server = ZMonitorServer.getInstance();
 const io = (module.exports.io = server.io);
 const app = server.app;
 
@@ -145,8 +145,8 @@ if (hostname) {
 const port = config.port;
 
 const disableFrameSameOrigin =
-    !!process.env.UPTIME_KUMA_DISABLE_FRAME_SAMEORIGIN || args["disable-frame-sameorigin"] || false;
-const cloudflaredToken = args["cloudflared-token"] || process.env.UPTIME_KUMA_CLOUDFLARED_TOKEN || undefined;
+    !!process.env.ZMONITOR_DISABLE_FRAME_SAMEORIGIN || args["disable-frame-sameorigin"] || false;
+const cloudflaredToken = args["cloudflared-token"] || process.env.ZMONITOR_CLOUDFLARED_TOKEN || undefined;
 
 // 2FA / notp verification defaults
 const twoFAVerifyOptions = {
@@ -2006,7 +2006,7 @@ gracefulShutdown(server.httpServer, {
 // Catch unexpected errors here
 let unexpectedErrorHandler = (error, promise) => {
     console.trace(error);
-    UptimeKumaServer.errorLog(error, false);
+    ZMonitorServer.errorLog(error, false);
     console.error("If you keep encountering errors, please report to https://github.com/louislam/uptime-kuma/issues");
 };
 process.addListener("unhandledRejection", unexpectedErrorHandler);

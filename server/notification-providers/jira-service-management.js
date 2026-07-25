@@ -20,7 +20,7 @@ class JiraServiceManagement extends NotificationProvider {
             const textMsg = `${appName} Alert`;
             if (heartbeatJSON == null) {
                 // Test notification
-                let notificationTestAlias = "uptime-kuma-notification-test";
+                let notificationTestAlias = `${appName.toLowerCase().replace(/\s+/g, "-")}-notification-test`;
                 let data = {
                     message: msg,
                     alias: notificationTestAlias,

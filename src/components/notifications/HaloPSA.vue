@@ -80,7 +80,7 @@
                     : {{ $t("halopsa_field_timestamp") }}
                 </li>
                 <li>
-                    <b>uptime_kuma_version</b>
+                    <b>zmonitor_version</b>
                     : {{ $t("halopsa_field_uptime_kuma_version") }}
                 </li>
             </ul>

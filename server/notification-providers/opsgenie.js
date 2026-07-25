@@ -32,7 +32,7 @@ class Opsgenie extends NotificationProvider {
             }
 
             if (heartbeatJSON == null) {
-                let notificationTestAlias = "uptime-kuma-notification-test";
+                let notificationTestAlias = `${appName.toLowerCase().replace(/\s+/g, "-")}-notification-test`;
                 let data = {
                     message: msg,
                     alias: notificationTestAlias,

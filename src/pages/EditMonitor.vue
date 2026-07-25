@@ -1694,7 +1694,7 @@
                                         class="form-check-label"
                                         for="cache-bust"
                                     >
-                                        <code>uptime_kuma_cachebuster</code>
+                                        <code>zmonitor_cachebuster</code>
                                     </i18n-t>
                                 </label>
                                 <div class="form-text">
@@ -3385,7 +3385,7 @@ message HealthCheckResponse {
 <?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
-    <Uptime>Kuma</Uptime>
+    <Example>Value</Example>
   </soap:Body>
 </soap:Envelope>`,
                 ]);

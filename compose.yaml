@@ -1,6 +1,7 @@
 services:
-  uptime-kuma:
-    image: louislam/uptime-kuma:2
+  zmonitor:
+    image: ghcr.io/vivekjaiswar/zmonitor:latest
+    container_name: zmonitor
     restart: unless-stopped
     volumes:
       - ./data:/app/data

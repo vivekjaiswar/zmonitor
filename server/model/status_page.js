@@ -1,7 +1,7 @@
 const { BeanModel } = require("redbean-node/dist/bean-model");
 const { R } = require("redbean-node");
 const cheerio = require("cheerio");
-const { UptimeKumaServer } = require("../uptime-kuma-server");
+const { ZMonitorServer } = require("../zmonitor-server");
 const jsesc = require("jsesc");
 const analytics = require("../analytics/analytics");
 const { marked } = require("marked");
@@ -43,7 +43,7 @@ class StatusPage extends BeanModel {
             response.type("application/rss+xml");
             response.send(await StatusPage.renderRSS(statusPage, feedUrl));
         } else {
-            response.status(404).send(UptimeKumaServer.getInstance().indexHTML);
+            response.status(404).send(ZMonitorServer.getInstance().indexHTML);
         }
     }
 
@@ -66,7 +66,7 @@ class StatusPage extends BeanModel {
         if (statusPage) {
             response.send(await StatusPage.renderHTML(indexHTML, statusPage));
         } else {
-            response.status(404).send(UptimeKumaServer.getInstance().indexHTML);
+            response.status(404).send(ZMonitorServer.getInstance().indexHTML);
         }
     }
 
@@ -574,7 +574,7 @@ class StatusPage extends BeanModel {
             );
 
             for (const maintenanceID of maintenanceIDList) {
-                let maintenance = UptimeKumaServer.getInstance().getMaintenance(maintenanceID);
+                let maintenance = ZMonitorServer.getInstance().getMaintenance(maintenanceID);
                 if (maintenance && (await maintenance.isUnderMaintenance())) {
                     publicMaintenanceList.push(await maintenance.toPublicJSON());
                 }

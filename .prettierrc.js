@@ -1,5 +1,5 @@
 /**
- * Prettier Configuration for Uptime Kuma
+ * Prettier Configuration for ZMonitor
  *
  * Usage:
  *   npm run fmt              - Format all files (auto-runs in CI via autofix workflow)

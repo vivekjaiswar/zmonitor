@@ -257,20 +257,20 @@ class Database {
 
         let config = {};
 
-        let parsedMaxPoolConnections = parseInt(process.env.UPTIME_KUMA_DB_POOL_MAX_CONNECTIONS);
+        let parsedMaxPoolConnections = parseInt(process.env.ZMONITOR_DB_POOL_MAX_CONNECTIONS);
 
-        if (!process.env.UPTIME_KUMA_DB_POOL_MAX_CONNECTIONS) {
+        if (!process.env.ZMONITOR_DB_POOL_MAX_CONNECTIONS) {
             parsedMaxPoolConnections = 10;
         } else if (Number.isNaN(parsedMaxPoolConnections)) {
             log.warn(
                 "db",
-                "Max database connections defaulted to 10 because UPTIME_KUMA_DB_POOL_MAX_CONNECTIONS was invalid."
+                "Max database connections defaulted to 10 because ZMONITOR_DB_POOL_MAX_CONNECTIONS was invalid."
             );
             parsedMaxPoolConnections = 10;
         } else if (parsedMaxPoolConnections < 1) {
             log.warn(
                 "db",
-                "Max database connections defaulted to 10 because UPTIME_KUMA_DB_POOL_MAX_CONNECTIONS was less than 1."
+                "Max database connections defaulted to 10 because ZMONITOR_DB_POOL_MAX_CONNECTIONS was less than 1."
             );
             parsedMaxPoolConnections = 10;
         } else if (parsedMaxPoolConnections > 100) {
@@ -307,7 +307,7 @@ class Database {
 
             // Default is still single connection.
             // Multiple connection could run into "SQLITE_BUSY: database is locked" error.
-            if (process.env.UPTIME_KUMA_SQLITE_SINGLE_CONNECTION !== "false") {
+            if (process.env.ZMONITOR_SQLITE_SINGLE_CONNECTION !== "false") {
                 log.info("db", "Using single connection for SQLite");
                 poolConfig = {
                     min: 1,
@@ -349,7 +349,7 @@ class Database {
                     : {}),
             });
 
-            // Set to true, so for example "uptime.kuma", becomes `uptime.kuma`, not `uptime`.`kuma`
+            // Set to true, so for example "zmonitor.local", becomes `zmonitor.local`, not `zmonitor`.`local`
             // Doc: https://github.com/mysqljs/sqlstring?tab=readme-ov-file#escaping-query-identifiers
             const escapedDBName = SqlString.escapeId(dbConfig.dbName, true);
 
@@ -581,10 +581,10 @@ class Database {
                 await Database.close();
 
                 log.error("db", ex);
-                log.error("db", "Start Uptime-Kuma failed due to issue patching the database");
+                log.error("db", "Start ZMonitor failed due to issue patching the database");
                 log.error(
                     "db",
-                    "Please submit a bug report if you still encounter the problem after restart: https://github.com/louislam/uptime-kuma/issues"
+                    "Please submit a bug report if you still encounter the problem after restart: https://github.com/vivekjaiswar/zmonitor/issues"
                 );
 
                 process.exit(1);
@@ -625,10 +625,10 @@ class Database {
             await Database.close();
 
             log.error("db", ex);
-            log.error("db", "Start Uptime-Kuma failed due to issue patching the database");
+            log.error("db", "Start ZMonitor failed due to issue patching the database");
             log.error(
                 "db",
-                "Please submit the bug report if you still encounter the problem after restart: https://github.com/louislam/uptime-kuma/issues"
+                "Please submit the bug report if you still encounter the problem after restart: https://github.com/vivekjaiswar/zmonitor/issues"
             );
 
             process.exit(1);

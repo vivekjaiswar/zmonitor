@@ -1,6 +1,7 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
 const { DOWN } = require("../../src/util");
+const { Settings } = require("../settings");
 
 class Squadcast extends NotificationProvider {
     name = "squadcast";
@@ -18,7 +19,7 @@ class Squadcast extends NotificationProvider {
                 description: "",
                 tags: {},
                 heartbeat: heartbeatJSON,
-                source: "uptime-kuma",
+                source: (await Settings.getAppName()).toLowerCase().replace(/\s+/g, "-"),
             };
 
             if (heartbeatJSON !== null) {

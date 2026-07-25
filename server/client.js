@@ -3,8 +3,8 @@
  */
 const { TimeLogger } = require("../src/util");
 const { R } = require("redbean-node");
-const { UptimeKumaServer } = require("./uptime-kuma-server");
-const server = UptimeKumaServer.getInstance();
+const { ZMonitorServer } = require("./zmonitor-server");
+const server = ZMonitorServer.getInstance();
 const io = server.io;
 const { setting } = require("./util-server");
 const checkVersion = require("./check-version");
@@ -153,7 +153,7 @@ async function sendInfo(socket, hideVersion = false) {
     if (!hideVersion) {
         info.version = checkVersion.version;
         info.latestVersion = checkVersion.latestVersion;
-        info.isContainer = process.env.UPTIME_KUMA_IS_CONTAINER === "1";
+        info.isContainer = process.env.ZMONITOR_IS_CONTAINER === "1";
         info.dbType = Database.dbConfig.type;
         info.runtime = {
             platform: process.platform, // linux or win32
@@ -214,7 +214,7 @@ async function sendRemoteBrowserList(socket) {
  * @returns {Promise<void>}
  */
 async function sendMonitorTypeList(socket) {
-    const result = Object.entries(UptimeKumaServer.monitorTypeList).map(([key, type]) => {
+    const result = Object.entries(ZMonitorServer.monitorTypeList).map(([key, type]) => {
         return [
             key,
             {

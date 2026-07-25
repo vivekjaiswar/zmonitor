@@ -46,7 +46,7 @@ class Fluxer extends NotificationProvider {
                     content: content,
                 };
                 if (!webhookHasAvatar) {
-                    fluxertestdata.avatar_url = "https://github.com/louislam/uptime-kuma/raw/master/public/icon.png";
+                    fluxertestdata.avatar_url = "https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/public/icon.png";
                 }
                 await axios.post(webhookUrl.toString(), fluxertestdata, config);
                 return okMsg;
@@ -66,7 +66,7 @@ class Fluxer extends NotificationProvider {
                     content: content,
                 };
                 if (!webhookHasAvatar) {
-                    payload.avatar_url = "https://github.com/louislam/uptime-kuma/raw/master/public/icon.png";
+                    payload.avatar_url = "https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/public/icon.png";
                 }
 
                 await axios.post(webhookUrl.toString(), payload, config);
@@ -88,7 +88,7 @@ class Fluxer extends NotificationProvider {
                     content: content,
                 };
                 if (!webhookHasAvatar) {
-                    payload.avatar_url = "https://github.com/louislam/uptime-kuma/raw/master/public/icon.png";
+                    payload.avatar_url = "https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/public/icon.png";
                 }
 
                 await axios.post(webhookUrl.toString(), payload, config);
@@ -135,7 +135,7 @@ class Fluxer extends NotificationProvider {
                     ],
                 };
                 if (!webhookHasAvatar) {
-                    fluxerdowndata.avatar_url = "https://github.com/louislam/uptime-kuma/raw/master/public/icon.png";
+                    fluxerdowndata.avatar_url = "https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/public/icon.png";
                 }
                 if (notification.fluxerPrefixMessage) {
                     fluxerdowndata.content = notification.fluxerPrefixMessage;
@@ -206,7 +206,7 @@ class Fluxer extends NotificationProvider {
                     ],
                 };
                 if (!webhookHasAvatar) {
-                    fluxerupdata.avatar_url = "https://github.com/louislam/uptime-kuma/raw/master/public/icon.png";
+                    fluxerupdata.avatar_url = "https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/public/icon.png";
                 }
                 if (notification.fluxerPrefixMessage) {
                     fluxerupdata.content = notification.fluxerPrefixMessage;

@@ -73,7 +73,7 @@ class PagerTree extends NotificationProvider {
             headers: { "Content-Type": "application/json" },
             data: {
                 event_type: eventAction,
-                id: heartbeatJSON?.monitorID || "uptime-kuma",
+                id: heartbeatJSON?.monitorID || (await Settings.getAppName()).toLowerCase().replace(/\s+/g, "-"),
                 title: title,
                 urgency: notification.pagertreeUrgency,
                 heartbeat: heartbeatJSON,

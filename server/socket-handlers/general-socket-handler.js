@@ -37,7 +37,7 @@ function getGameList() {
 /**
  * Handler for general events
  * @param {Socket} socket Socket.io instance
- * @param {UptimeKumaServer} server Uptime Kuma server
+ * @param {ZMonitorServer} server ZMonitor server
  * @returns {void}
  */
 module.exports.generalSocketHandler = (socket, server) => {

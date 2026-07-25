@@ -50,7 +50,7 @@ const { Proxy } = require("../proxy");
 const { demoMode } = require("../config");
 const version = require("../../package.json").version;
 const apicache = require("../modules/apicache");
-const { UptimeKumaServer } = require("../uptime-kuma-server");
+const { ZMonitorServer } = require("../zmonitor-server");
 const { DockerHost } = require("../docker");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -118,7 +118,7 @@ class Monitor extends BeanModel {
         let screenshot = null;
 
         if (this.type === "real-browser") {
-            screenshot = "/screenshots/" + jwt.sign(this.id, UptimeKumaServer.getInstance().jwtSecret) + ".png";
+            screenshot = "/screenshots/" + jwt.sign(this.id, ZMonitorServer.getInstance().jwtSecret) + ".png";
         }
 
         const path = preloadData.paths.get(this.id) || [];
@@ -579,7 +579,7 @@ class Monitor extends BeanModel {
                         const randomFloatString = Math.random().toString(36);
                         const cacheBust = randomFloatString.substring(2);
                         options.params = {
-                            uptime_kuma_cachebuster: cacheBust,
+                            zmonitor_cachebuster: cacheBust,
                         };
                     }
 
@@ -671,7 +671,7 @@ class Monitor extends BeanModel {
                     }
 
                     // eslint-disable-next-line eqeqeq
-                    if (process.env.UPTIME_KUMA_LOG_RESPONSE_BODY_MONITOR_ID == this.id) {
+                    if (process.env.ZMONITOR_LOG_RESPONSE_BODY_MONITOR_ID == this.id) {
                         log.info("monitor", res.data);
                     }
 
@@ -913,10 +913,10 @@ class Monitor extends BeanModel {
                     bean.msg = resp.code;
                     bean.status = UP;
                     bean.ping = dayjs().valueOf() - startTime;
-                } else if (this.type in UptimeKumaServer.monitorTypeList) {
+                } else if (this.type in ZMonitorServer.monitorTypeList) {
                     let startTime = dayjs().valueOf();
-                    const monitorType = UptimeKumaServer.monitorTypeList[this.type];
-                    await monitorType.check(this, bean, UptimeKumaServer.getInstance());
+                    const monitorType = ZMonitorServer.monitorTypeList[this.type];
+                    await monitorType.check(this, bean, ZMonitorServer.getInstance());
 
                     if (!monitorType.allowCustomStatus && bean.status !== UP) {
                         throw new Error(
@@ -937,7 +937,7 @@ class Monitor extends BeanModel {
                         {
                             allowAutoTopicCreation: this.kafkaProducerAllowAutoTopicCreation,
                             ssl: this.kafkaProducerSsl,
-                            clientId: `Uptime-Kuma/${version}`,
+                            clientId: `ZMonitor/${version}`,
                             interval: this.interval,
                             connectionTimeout: this.timeout,
                         },
@@ -1029,7 +1029,7 @@ class Monitor extends BeanModel {
                 log.debug("monitor", `[${this.name}] apicache clear`);
                 apicache.clear();
 
-                await UptimeKumaServer.getInstance().sendMaintenanceListByUserID(this.user_id);
+                await ZMonitorServer.getInstance().sendMaintenanceListByUserID(this.user_id);
             } else {
                 bean.important = false;
 
@@ -1140,8 +1140,8 @@ class Monitor extends BeanModel {
                 await beat();
             } catch (e) {
                 console.trace(e);
-                UptimeKumaServer.errorLog(e, false);
-                log.error("monitor", "Please report to https://github.com/louislam/uptime-kuma/issues");
+                ZMonitorServer.errorLog(e, false);
+                log.error("monitor", "Please report to https://github.com/vivekjaiswar/zmonitor/issues");
 
                 if (!this.isStop) {
                     log.info("monitor", "Try to restart the monitor");
@@ -1518,8 +1518,8 @@ class Monitor extends BeanModel {
             }
 
             // Also provide the time in server timezone
-            heartbeatJSON["timezone"] = await UptimeKumaServer.getInstance().getTimezone();
-            heartbeatJSON["timezoneOffset"] = UptimeKumaServer.getInstance().getTimezoneOffset();
+            heartbeatJSON["timezone"] = await ZMonitorServer.getInstance().getTimezone();
+            heartbeatJSON["timezoneOffset"] = ZMonitorServer.getInstance().getTimezoneOffset();
             heartbeatJSON["localDateTime"] = dayjs
                 .utc(heartbeatJSON["time"])
                 .tz(heartbeatJSON["timezone"])
@@ -1650,7 +1650,7 @@ class Monitor extends BeanModel {
         );
 
         for (const maintenanceID of maintenanceIDList) {
-            const maintenance = await UptimeKumaServer.getInstance().getMaintenance(maintenanceID);
+            const maintenance = await ZMonitorServer.getInstance().getMaintenance(maintenanceID);
             if (maintenance && (await maintenance.isUnderMaintenance())) {
                 return true;
             }
@@ -2023,7 +2023,7 @@ class Monitor extends BeanModel {
      * @returns {Promise<void>}
      */
     static async deleteMonitor(monitorID, userID) {
-        const server = UptimeKumaServer.getInstance();
+        const server = ZMonitorServer.getInstance();
 
         // Stop the monitor if it's running
         if (monitorID in server.monitorList) {

@@ -46,7 +46,7 @@ class HaloPSA extends NotificationProvider {
                 monitor_id: monitorJSON?.id || null,
                 message: msg,
                 timestamp: new Date().toISOString(),
-                uptime_kuma_version: process.env.npm_package_version || "unknown",
+                zmonitor_version: process.env.npm_package_version || "unknown",
             };
 
             // Send POST request to Halo PSA webhook

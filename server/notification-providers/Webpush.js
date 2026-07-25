@@ -16,7 +16,7 @@ class Webpush extends NotificationProvider {
             const publicVapidKey = await setting("webpushPublicVapidKey");
             const privateVapidKey = await setting("webpushPrivateVapidKey");
 
-            webpush.setVapidDetails("https://github.com/louislam/uptime-kuma", publicVapidKey, privateVapidKey);
+            webpush.setVapidDetails("https://github.com/vivekjaiswar/zmonitor", publicVapidKey, privateVapidKey);
 
             const data = JSON.stringify({
                 title: await Settings.getAppName(),

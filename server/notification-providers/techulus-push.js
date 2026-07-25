@@ -1,5 +1,6 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 class TechulusPush extends NotificationProvider {
     name = "PushByTechulus";
@@ -11,7 +12,7 @@ class TechulusPush extends NotificationProvider {
         const okMsg = "Sent Successfully.";
 
         let data = {
-            title: notification?.pushTitle?.length ? notification.pushTitle : "Uptime-Kuma",
+            title: notification?.pushTitle?.length ? notification.pushTitle : await Settings.getAppName(),
             body: msg,
             timeSensitive: notification.pushTimeSensitive ?? true,
         };

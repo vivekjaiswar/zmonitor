@@ -1,5 +1,6 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 class ClickSendSMS extends NotificationProvider {
     name = "clicksendsms";
@@ -28,7 +29,7 @@ class ClickSendSMS extends NotificationProvider {
                     {
                         body: msg.replace(/[^\x00-\x7F]/g, ""),
                         to: notification.clicksendsmsToNumber,
-                        source: "uptime-kuma",
+                        source: (await Settings.getAppName()).toLowerCase().replace(/\s+/g, "-"),
                         from: notification.clicksendsmsSenderName,
                     },
                 ],

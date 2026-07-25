@@ -1,5 +1,6 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 class Gotify extends NotificationProvider {
     name = "gotify";
@@ -20,7 +21,7 @@ class Gotify extends NotificationProvider {
                 {
                     message: msg,
                     priority: notification.gotifyPriority || 8,
-                    title: "Uptime-Kuma",
+                    title: await Settings.getAppName(),
                 },
                 config
             );

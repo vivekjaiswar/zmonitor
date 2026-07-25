@@ -1,5 +1,6 @@
 const NotificationProvider = require("./notification-provider");
 const axios = require("axios");
+const { Settings } = require("../settings");
 
 class Pushy extends NotificationProvider {
     name = "pushy";
@@ -17,7 +18,7 @@ class Pushy extends NotificationProvider {
                 {
                     to: notification.pushyToken,
                     data: {
-                        message: "Uptime-Kuma",
+                        message: await Settings.getAppName(),
                     },
                     notification: {
                         body: msg,

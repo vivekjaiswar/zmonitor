@@ -13,16 +13,16 @@ const childProcessAsync = require("promisify-child-process");
 const path = require("path");
 const axios = require("axios");
 const { isSSL, sslKey, sslCert, sslKeyPassphrase } = require("./config");
-// DO NOT IMPORT HERE IF THE MODULES USED `UptimeKumaServer.getInstance()`, put at the bottom of this file instead.
+// DO NOT IMPORT HERE IF THE MODULES USED `ZMonitorServer.getInstance()`, put at the bottom of this file instead.
 
 /**
  * `module.exports` (alias: `server`) should be inside this class, in order to avoid circular dependency issue.
- * @type {UptimeKumaServer}
+ * @type {ZMonitorServer}
  */
-class UptimeKumaServer {
+class ZMonitorServer {
     /**
      * Current server instance
-     * @type {UptimeKumaServer}
+     * @type {ZMonitorServer}
      */
     static instance = null;
 
@@ -63,20 +63,20 @@ class UptimeKumaServer {
     /**
      * Get the current instance of the server if it exists, otherwise
      * create a new instance.
-     * @returns {UptimeKumaServer} Server instance
+     * @returns {ZMonitorServer} Server instance
      */
     static getInstance() {
-        if (UptimeKumaServer.instance == null) {
-            UptimeKumaServer.instance = new UptimeKumaServer();
+        if (ZMonitorServer.instance == null) {
+            ZMonitorServer.instance = new ZMonitorServer();
         }
-        return UptimeKumaServer.instance;
+        return ZMonitorServer.instance;
     }
 
     /**
      *
      */
     constructor() {
-        // Set axios default user-agent to Uptime-Kuma/version
+        // Set axios default user-agent to ZMonitor/version
         axios.defaults.headers.common["User-Agent"] = this.getUserAgent();
 
         // Set default axios timeout to 5 minutes instead of infinity
@@ -110,28 +110,28 @@ class UptimeKumaServer {
         }
 
         // Set Monitor Types
-        UptimeKumaServer.monitorTypeList["real-browser"] = new RealBrowserMonitorType();
-        UptimeKumaServer.monitorTypeList["tailscale-ping"] = new TailscalePing();
-        UptimeKumaServer.monitorTypeList["websocket-upgrade"] = new WebSocketMonitorType();
-        UptimeKumaServer.monitorTypeList["dns"] = new DnsMonitorType();
-        UptimeKumaServer.monitorTypeList["postgres"] = new PostgresMonitorType();
-        UptimeKumaServer.monitorTypeList["mqtt"] = new MqttMonitorType();
-        UptimeKumaServer.monitorTypeList["smtp"] = new SMTPMonitorType();
-        UptimeKumaServer.monitorTypeList["group"] = new GroupMonitorType();
-        UptimeKumaServer.monitorTypeList["snmp"] = new SNMPMonitorType();
-        UptimeKumaServer.monitorTypeList["grpc-keyword"] = new GrpcKeywordMonitorType();
-        UptimeKumaServer.monitorTypeList["mongodb"] = new MongodbMonitorType();
-        UptimeKumaServer.monitorTypeList["rabbitmq"] = new RabbitMqMonitorType();
-        UptimeKumaServer.monitorTypeList["sip-options"] = new SIPMonitorType();
-        UptimeKumaServer.monitorTypeList["gamedig"] = new GameDigMonitorType();
-        UptimeKumaServer.monitorTypeList["port"] = new TCPMonitorType();
-        UptimeKumaServer.monitorTypeList["manual"] = new ManualMonitorType();
-        UptimeKumaServer.monitorTypeList["globalping"] = new GlobalpingMonitorType(this.getUserAgent());
-        UptimeKumaServer.monitorTypeList["redis"] = new RedisMonitorType();
-        UptimeKumaServer.monitorTypeList["system-service"] = new SystemServiceMonitorType();
-        UptimeKumaServer.monitorTypeList["sqlserver"] = new MssqlMonitorType();
-        UptimeKumaServer.monitorTypeList["mysql"] = new MysqlMonitorType();
-        UptimeKumaServer.monitorTypeList["oracledb"] = new OracleDbMonitorType();
+        ZMonitorServer.monitorTypeList["real-browser"] = new RealBrowserMonitorType();
+        ZMonitorServer.monitorTypeList["tailscale-ping"] = new TailscalePing();
+        ZMonitorServer.monitorTypeList["websocket-upgrade"] = new WebSocketMonitorType();
+        ZMonitorServer.monitorTypeList["dns"] = new DnsMonitorType();
+        ZMonitorServer.monitorTypeList["postgres"] = new PostgresMonitorType();
+        ZMonitorServer.monitorTypeList["mqtt"] = new MqttMonitorType();
+        ZMonitorServer.monitorTypeList["smtp"] = new SMTPMonitorType();
+        ZMonitorServer.monitorTypeList["group"] = new GroupMonitorType();
+        ZMonitorServer.monitorTypeList["snmp"] = new SNMPMonitorType();
+        ZMonitorServer.monitorTypeList["grpc-keyword"] = new GrpcKeywordMonitorType();
+        ZMonitorServer.monitorTypeList["mongodb"] = new MongodbMonitorType();
+        ZMonitorServer.monitorTypeList["rabbitmq"] = new RabbitMqMonitorType();
+        ZMonitorServer.monitorTypeList["sip-options"] = new SIPMonitorType();
+        ZMonitorServer.monitorTypeList["gamedig"] = new GameDigMonitorType();
+        ZMonitorServer.monitorTypeList["port"] = new TCPMonitorType();
+        ZMonitorServer.monitorTypeList["manual"] = new ManualMonitorType();
+        ZMonitorServer.monitorTypeList["globalping"] = new GlobalpingMonitorType(this.getUserAgent());
+        ZMonitorServer.monitorTypeList["redis"] = new RedisMonitorType();
+        ZMonitorServer.monitorTypeList["system-service"] = new SystemServiceMonitorType();
+        ZMonitorServer.monitorTypeList["sqlserver"] = new MssqlMonitorType();
+        ZMonitorServer.monitorTypeList["mysql"] = new MysqlMonitorType();
+        ZMonitorServer.monitorTypeList["oracledb"] = new OracleDbMonitorType();
 
         // Allow all CORS origins (polling) in development
         let cors = undefined;
@@ -160,7 +160,7 @@ class UptimeKumaServer {
                 if (transport === "polling") {
                     callback(null, true);
                 } else if (transport === "websocket") {
-                    const bypass = process.env.UPTIME_KUMA_WS_ORIGIN_CHECK === "bypass";
+                    const bypass = process.env.ZMONITOR_WS_ORIGIN_CHECK === "bypass";
                     if (bypass) {
                         log.info("auth", "WebSocket origin check is bypassed");
                         callback(null, true);
@@ -505,7 +505,7 @@ class UptimeKumaServer {
      * @returns {void}
      */
     async startNSCDServices() {
-        if (process.env.UPTIME_KUMA_IS_CONTAINER) {
+        if (process.env.ZMONITOR_IS_CONTAINER) {
             try {
                 log.info("services", "Starting nscd");
                 await childProcessAsync.exec("sudo service nscd start");
@@ -520,7 +520,7 @@ class UptimeKumaServer {
      * @returns {void}
      */
     async stopNSCDServices() {
-        if (process.env.UPTIME_KUMA_IS_CONTAINER) {
+        if (process.env.ZMONITOR_IS_CONTAINER) {
             try {
                 log.info("services", "Stopping nscd");
                 await childProcessAsync.exec("sudo service nscd stop");
@@ -535,7 +535,7 @@ class UptimeKumaServer {
      * @returns {string} User-Agent
      */
     getUserAgent() {
-        return "Uptime-Kuma/" + require("../package.json").version;
+        return "ZMonitor/" + require("../package.json").version;
     }
 
     /**
@@ -558,7 +558,7 @@ class UptimeKumaServer {
 }
 
 module.exports = {
-    UptimeKumaServer,
+    ZMonitorServer,
 };
 
 // Must be at the end to avoid circular dependencies
