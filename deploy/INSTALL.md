@@ -5,7 +5,7 @@ prebuilt public image (`ghcr.io/vivekjaiswar/zmonitor`) and starts it for you.
 
 ## Server Requirements
 
-* Ubuntu 22.04 or 24.04 LTS
+* Ubuntu 22.04/24.04 LTS or Debian 11/12/13
 * 2 vCPU minimum
 * 4 GB RAM minimum
 * 20 GB SSD minimum
@@ -17,10 +17,15 @@ Download and run the installer — it installs Docker if needed, pulls the ZMoni
 image, and starts it:
 
 ```bash
+apt-get update && apt-get install -y curl   # skip if curl is already installed
 curl -fsSL https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/deploy/install-zmonitor.sh -o install-zmonitor.sh
 chmod +x install-zmonitor.sh
 ./install-zmonitor.sh
 ```
+
+Some minimal/fresh server images (common on Debian LXC templates, some VPS
+providers) don't ship `curl` at all, so the first line makes sure it's there
+before trying to fetch the script.
 
 When it finishes it prints the URL to open, e.g. `http://<server-ip>:3001`.
 

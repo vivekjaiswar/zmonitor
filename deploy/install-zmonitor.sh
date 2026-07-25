@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# ZMonitor installer for Ubuntu servers.
+# ZMonitor installer for Ubuntu/Debian servers.
 #
 # Usage:
 #   ./install-zmonitor.sh
@@ -37,13 +37,22 @@ log "Checking for Docker..."
 if ! command -v docker >/dev/null 2>&1; then
     echo "Docker not found, installing Docker Engine from Docker's official repo..."
 
+    DISTRO_ID="$(. /etc/os-release && echo "$ID")"
+    case "$DISTRO_ID" in
+        ubuntu|debian) ;;
+        *)
+            echo "ERROR: unsupported OS '$DISTRO_ID'. This installer supports Ubuntu and Debian." >&2
+            exit 1
+            ;;
+    esac
+
     $SUDO install -m 0755 -d /etc/apt/keyrings
-    $SUDO curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    $SUDO curl -fsSL "https://download.docker.com/linux/$DISTRO_ID/gpg" -o /etc/apt/keyrings/docker.asc
     $SUDO chmod a+r /etc/apt/keyrings/docker.asc
 
     ARCH="$(dpkg --print-architecture)"
     CODENAME="$(. /etc/os-release && echo "$VERSION_CODENAME")"
-    echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $CODENAME stable" \
+    echo "deb [arch=$ARCH signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/$DISTRO_ID $CODENAME stable" \
         | $SUDO tee /etc/apt/sources.list.d/docker.list > /dev/null
 
     $SUDO apt-get update -y
