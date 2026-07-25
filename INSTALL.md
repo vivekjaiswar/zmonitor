@@ -18,7 +18,7 @@ image, and starts it:
 
 ```bash
 apt-get update && apt-get install -y curl   # skip if curl is already installed
-curl -fsSL https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/deploy/install-zmonitor.sh -o install-zmonitor.sh
+curl -fsSL https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/install-zmonitor.sh -o install-zmonitor.sh
 chmod +x install-zmonitor.sh
 ./install-zmonitor.sh
 ```

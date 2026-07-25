@@ -29,12 +29,12 @@ The fastest path is the installer, which sets up Docker if needed, pulls the
 published image, and starts the container:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/deploy/install-zmonitor.sh -o install-zmonitor.sh
+curl -fsSL https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/install-zmonitor.sh -o install-zmonitor.sh
 chmod +x install-zmonitor.sh
 ./install-zmonitor.sh
 ```
 
-See [`deploy/INSTALL.md`](deploy/INSTALL.md) for server requirements, the
+See [`INSTALL.md`](INSTALL.md) for server requirements, the
 domain/HTTPS option, environment variables, backup/restore, and upgrades.
 
 ### Docker Compose
