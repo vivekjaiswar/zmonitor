@@ -5,13 +5,13 @@ prebuilt public image (`ghcr.io/vivekjaiswar/zmonitor`) and starts it for you.
 
 ## Server Requirements
 
-* Ubuntu 22.04/24.04 LTS or Debian 11/12/13
+* Ubuntu 22.04/24.04 LTS, Debian 11/12/13, or Windows Server 2019/2022 (see below)
 * 2 vCPU minimum
 * 4 GB RAM minimum
 * 20 GB SSD minimum
 * Public IP (a domain name is optional, see below)
 
-## Install
+## Install (Ubuntu / Debian)
 
 Download and run the installer — it installs Docker if needed, pulls the ZMonitor
 image, and starts it:
@@ -28,6 +28,30 @@ providers) don't ship `curl` at all, so the first line makes sure it's there
 before trying to fetch the script.
 
 When it finishes it prints the URL to open, e.g. `http://<server-ip>:3001`.
+
+## Install (Windows Server)
+
+ZMonitor's image is Linux-based, so Docker on Windows Server needs WSL2 and/or
+Hyper-V enabled first (usually a one-time reboot). Because that step can
+require a restart, `install-zmonitor.ps1` checks for a working Docker install
+and gives you the setup link rather than trying to silently install it.
+
+1. Install Docker if you haven't already — see
+   [Docker Desktop for Windows](https://docs.docker.com/desktop/setup/install/windows-install/)
+   (or [Docker Engine](https://docs.docker.com/engine/install/) directly for a
+   headless server). Confirm it's running with `docker info`.
+2. In an Administrator PowerShell prompt:
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/vivekjaiswar/zmonitor/main/install-zmonitor.ps1" -OutFile install-zmonitor.ps1
+.\install-zmonitor.ps1
+```
+
+Optional parameters, e.g. `.\install-zmonitor.ps1 -Port 8080 -InstallDir "D:\zmonitor"`.
+
+> **Note:** this path is newer and hasn't been battle-tested across the range
+> of Windows Server configurations the way the Linux installer has. Please
+> verify it end-to-end before relying on it for a real customer install.
 
 ### With a domain + automatic HTTPS
 
