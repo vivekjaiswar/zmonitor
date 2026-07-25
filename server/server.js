@@ -123,6 +123,7 @@ const webpush = require("web-push");
 
 log.debug("server", "Importing Database");
 const Database = require("./database");
+const ImageDataURI = require("./image-data-uri");
 
 log.debug("server", "Importing Background Jobs");
 const { initBackgroundJobs, stopBackgroundJobs } = require("./jobs");
@@ -1496,6 +1497,18 @@ let needSetup = false;
 
                 const previousChromeExecutable = await Settings.get("chromeExecutable");
                 const previousNSCDStatus = await Settings.get("nscd");
+
+                // White-label branding logo: if a fresh upload (base64 data URL), write it to
+                // disk and store the path instead of the raw data in the settings table.
+                if (data.customLogoUrl && data.customLogoUrl.startsWith("data:")) {
+                    const header = "data:image/png;base64,";
+                    if (!data.customLogoUrl.startsWith(header)) {
+                        throw new Error("Only PNG logos are supported.");
+                    }
+                    const filename = "custom-logo.png";
+                    await ImageDataURI.outputFile(data.customLogoUrl, Database.uploadDir + filename);
+                    data.customLogoUrl = `/upload/${filename}?t=` + Date.now();
+                }
 
                 await setSettings("general", data);
                 server.entryPage = data.entryPage;

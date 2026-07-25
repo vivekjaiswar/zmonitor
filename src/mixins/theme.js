@@ -29,6 +29,7 @@ export default {
 
         document.body.classList.add(this.theme);
         this.updateThemeColorMeta();
+        this.updateBranding();
     },
 
     computed: {
@@ -91,6 +92,10 @@ export default {
             document.body.classList.remove(from);
             document.body.classList.add(this.heartbeatBarTheme);
         },
+
+        info(to, from) {
+            this.updateBranding();
+        },
     },
 
     methods: {
@@ -103,6 +108,20 @@ export default {
                 document.querySelector("#theme-color").setAttribute("content", "#161B22");
             } else {
                 document.querySelector("#theme-color").setAttribute("content", "#146ed2");
+            }
+        },
+
+        /**
+         * Apply white-label branding (app name + favicon) from instance settings, if set
+         * @returns {void}
+         */
+        updateBranding() {
+            document.title = (this.info && this.info.customAppName) || "ZMonitor";
+
+            const logoUrl = this.info && this.info.customLogoUrl;
+            const iconLink = document.querySelector('link[rel="icon"]');
+            if (iconLink) {
+                iconLink.href = logoUrl || "/icon.svg";
             }
         },
     },

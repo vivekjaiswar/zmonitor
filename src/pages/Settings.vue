@@ -91,6 +91,9 @@ export default {
                 appearance: {
                     title: this.$t("Appearance"),
                 },
+                branding: {
+                    title: this.$t("Branding"),
+                },
                 notifications: {
                     title: this.$t("Notifications"),
                 },

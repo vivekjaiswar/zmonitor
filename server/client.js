@@ -147,6 +147,8 @@ async function sendInfo(socket, hideVersion = false) {
         primaryBaseURL: await setting("primaryBaseURL"),
         serverTimezone: await server.getTimezone(),
         serverTimezoneOffset: server.getTimezoneOffset(),
+        customAppName: await setting("customAppName"),
+        customLogoUrl: await setting("customLogoUrl"),
     };
     if (!hideVersion) {
         info.version = checkVersion.version;

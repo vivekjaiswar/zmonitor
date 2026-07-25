@@ -22,6 +22,7 @@ import SetupDatabase from "./pages/SetupDatabase.vue";
 
 // Settings - Sub Pages
 import Appearance from "./components/settings/Appearance.vue";
+import Branding from "./components/settings/Branding.vue";
 import General from "./components/settings/General.vue";
 const Notifications = () => import("./components/settings/Notifications.vue");
 import ReverseProxy from "./components/settings/ReverseProxy.vue";
@@ -94,6 +95,10 @@ const routes = [
                             {
                                 path: "appearance",
                                 component: Appearance,
+                            },
+                            {
+                                path: "branding",
+                                component: Branding,
                             },
                             {
                                 path: "notifications",
