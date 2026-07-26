@@ -58,6 +58,40 @@
                 </button>
             </div>
 
+            <!-- Brand Color -->
+            <div class="mb-4">
+                <label for="customPrimaryColor" class="form-label">
+                    {{ $t("Brand Color") }}
+                </label>
+                <div class="d-flex align-items-center gap-2">
+                    <input
+                        id="customPrimaryColor"
+                        v-model="colorSwatch"
+                        type="color"
+                        class="form-control form-control-color"
+                    />
+                    <input
+                        v-model="colorText"
+                        class="form-control"
+                        style="max-width: 140px"
+                        placeholder="#146ED2"
+                        maxlength="7"
+                    />
+                </div>
+                <div class="form-text">
+                    {{ $t("brandingColorDescription") }}
+                </div>
+
+                <button
+                    v-if="settings.customPrimaryColor"
+                    type="button"
+                    class="btn btn-normal btn-sm mt-2"
+                    @click="resetColor"
+                >
+                    {{ $t("Reset to Default") }}
+                </button>
+            </div>
+
             <!-- Save Button -->
             <div>
                 <button class="btn btn-primary" type="submit">
@@ -98,6 +132,24 @@ export default {
             }
             return "/icon.png";
         },
+        colorSwatch: {
+            get() {
+                return /^#[0-9a-fA-F]{6}$/.test(this.settings.customPrimaryColor)
+                    ? this.settings.customPrimaryColor
+                    : "#146ed2";
+            },
+            set(value) {
+                this.settings.customPrimaryColor = value;
+            },
+        },
+        colorText: {
+            get() {
+                return this.settings.customPrimaryColor || "";
+            },
+            set(value) {
+                this.settings.customPrimaryColor = value;
+            },
+        },
     },
 
     methods: {
@@ -124,6 +176,14 @@ export default {
          */
         resetLogo() {
             this.settings.customLogoUrl = "";
+        },
+
+        /**
+         * Reset the brand color back to the default ZMonitor blue
+         * @returns {void}
+         */
+        resetColor() {
+            this.settings.customPrimaryColor = "";
         },
     },
 };

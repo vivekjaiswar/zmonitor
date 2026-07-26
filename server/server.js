@@ -348,7 +348,7 @@ let needSetup = false;
     app.use("/upload", express.static(Database.uploadDir));
 
     app.get("/.well-known/change-password", async (_, response) => {
-        response.redirect("https://github.com/louislam/uptime-kuma/wiki/Reset-Password-via-CLI");
+        response.redirect("mailto:info@zennialhub.in");
     });
 
     // API Router
@@ -2007,7 +2007,7 @@ gracefulShutdown(server.httpServer, {
 let unexpectedErrorHandler = (error, promise) => {
     console.trace(error);
     ZMonitorServer.errorLog(error, false);
-    console.error("If you keep encountering errors, please report to https://github.com/louislam/uptime-kuma/issues");
+    console.error("If you keep encountering errors, please report to https://github.com/vivekjaiswar/zmonitor/issues");
 };
 process.addListener("unhandledRejection", unexpectedErrorHandler);
 process.addListener("uncaughtException", unexpectedErrorHandler);

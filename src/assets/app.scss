@@ -2,6 +2,11 @@
 @import "multiselect.scss";
 @import "node_modules/bootstrap/scss/bootstrap";
 
+:root {
+    // Overridden at runtime (per-tenant) via Settings > Branding; falls back to the default brand blue.
+    --brand-primary: #{$primary};
+}
+
 @font-face {
     font-family: "Plex Sans";
     font-style: normal;
@@ -171,6 +176,8 @@ optgroup {
 
 .btn-primary {
     color: white;
+    background-color: var(--brand-primary);
+    border-color: var(--brand-primary);
 
     &:hover,
     &:active,
@@ -451,7 +458,7 @@ optgroup {
 
             &.active {
                 background-color: $dark-bg2;
-                border-left-color: $primary;
+                border-left-color: var(--brand-primary);
             }
         }
     }
@@ -562,7 +569,7 @@ optgroup {
 
         &.active {
             background-color: $highlight-white;
-            border-left-color: $primary;
+            border-left-color: var(--brand-primary);
         }
         .tags {
             // Removes margin to line up tags list with uptime percentage
@@ -641,7 +648,7 @@ optgroup {
 }
 
 .spinner {
-    color: $primary;
+    color: var(--brand-primary);
 }
 
 .prism-editor__textarea {

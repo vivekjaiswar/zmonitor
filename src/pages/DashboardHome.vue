@@ -308,7 +308,7 @@ export default {
 
 .num {
     font-size: 28px;
-    color: $primary;
+    color: var(--brand-primary);
     font-weight: 700;
     display: block;
 }

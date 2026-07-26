@@ -11,11 +11,7 @@
                 <div class="modal-body">
                     <i18n-t keypath="Badge Link Generator Helptext" tag="p" class="form-text mb-3">
                         <template #documentation>
-                            <a
-                                href="https://github.com/louislam/uptime-kuma/wiki/Badge"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
+                            <a href="mailto:info@zennialhub.in">
                                 {{ $t("documentation") }}
                             </a>
                         </template>

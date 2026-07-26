@@ -414,7 +414,8 @@
     "wayToGetCloudflaredURL": "(Download cloudflared from {0})",
     "cloudflareWebsite": "Cloudflare Website",
     "Message:": "Message:",
-    "Don't know how to get the token? Please read the guide:": "Don't know how to get the token? Please read the guide:",
+    "Don't know how to get the token? Please read the guide:": "Don't know how to get the token? Contact support:",
+    "Contact support:": "Contact support:",
     "The current connection may be lost if you are currently connecting via Cloudflare Tunnel. Are you sure want to stop it? Type your current password to confirm it.": "The current connection may be lost if you are currently connecting via Cloudflare Tunnel. Are you sure want to stop it? Type your current password to confirm it.",
     "HTTP Headers": "HTTP Headers",
     "Trust Proxy": "Trust Proxy",
@@ -1555,5 +1556,7 @@
     "Reset to Default": "Reset to Default",
     "brandingDescription": "Customize the app name and logo shown in the header, browser tab, and favicon of this instance.",
     "brandingAppNameDescription": "Shown in the header and browser tab. Leave blank to use the default name.",
-    "brandingLogoDescription": "Click the logo to upload a replacement. Leave unset to use the default logo."
+    "brandingLogoDescription": "Click the logo to upload a replacement. Leave unset to use the default logo.",
+    "Brand Color": "Brand Color",
+    "brandingColorDescription": "Used for buttons, links, and highlights throughout this instance. Leave unset to use the default ZMonitor blue."
 }

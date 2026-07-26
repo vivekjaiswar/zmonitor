@@ -47,12 +47,7 @@
 
                     {{ $t("Don't know how to get the token? Please read the guide:") }}
                     <br />
-                    <a
-                        href="https://github.com/louislam/uptime-kuma/wiki/Reverse-Proxy-with-Cloudflare-Tunnel"
-                        target="_blank"
-                    >
-                        https://github.com/louislam/uptime-kuma/wiki/Reverse-Proxy-with-Cloudflare-Tunnel
-                    </a>
+                    <a href="mailto:info@zennialhub.in">info@zennialhub.in</a>
                 </div>
             </div>
 
@@ -100,11 +95,8 @@
         <div>
             {{ $t("For example: nginx, Apache and Traefik.") }}
             <br />
-            {{ $t("Please read") }}
-            <a href="https://github.com/louislam/uptime-kuma/wiki/Reverse-Proxy" target="_blank">
-                https://github.com/louislam/uptime-kuma/wiki/Reverse-Proxy
-            </a>
-            .
+            {{ $t("Contact support:") }}
+            <a href="mailto:info@zennialhub.in">info@zennialhub.in</a>
         </div>
 
         <h4 class="my-4">{{ $t("HTTP Headers") }}</h4>

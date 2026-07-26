@@ -732,7 +732,7 @@ export default {
 .selected-count {
     white-space: nowrap;
     font-size: 0.9em;
-    color: $primary;
+    color: var(--brand-primary);
 
     .dark & {
         color: $dark-font-color;

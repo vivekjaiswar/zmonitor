@@ -915,12 +915,12 @@ export default {
 }
 
 .url {
-    color: $primary;
+    color: var(--brand-primary);
     margin-bottom: 20px;
     font-weight: bold;
 
     a {
-        color: $primary;
+        color: var(--brand-primary);
     }
 }
 

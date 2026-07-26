@@ -5,7 +5,7 @@
                 {{ $root.connectionErrorMsg }}
                 <div v-if="$root.showReverseProxyGuide">
                     {{ $t("Using a Reverse Proxy?") }}
-                    <a href="https://github.com/louislam/uptime-kuma/wiki/Reverse-Proxy" target="_blank">
+                    <a href="mailto:info@zennialhub.in">
                         {{ $t("Check how to config it for WebSocket") }}
                     </a>
                 </div>
@@ -25,7 +25,7 @@
             <a
                 v-if="hasNewVersion"
                 target="_blank"
-                href="https://github.com/louislam/uptime-kuma/releases"
+                href="https://github.com/vivekjaiswar/zmonitor/releases"
                 class="btn btn-primary me-3"
             >
                 <font-awesome-icon icon="arrow-alt-circle-up" />
@@ -95,11 +95,7 @@
                             </li>
 
                             <li>
-                                <a
-                                    href="https://github.com/louislam/uptime-kuma/wiki"
-                                    class="dropdown-item"
-                                    target="_blank"
-                                >
+                                <a href="mailto:info@zennialhub.in" class="dropdown-item">
                                     <font-awesome-icon icon="info-circle" />
                                     {{ $t("Help") }}
                                 </a>
@@ -266,12 +262,17 @@ export default {
 }
 
 .nav-link {
+    &.active {
+        // !important: must beat Bootstrap's own compiled .nav-pills .nav-link.active rule
+        background-color: var(--brand-primary) !important;
+    }
+
     &:hover {
-        background-color: $primary;
+        background-color: var(--brand-primary);
         color: #fff;
 
         .dark & {
-            background-color: $primary;
+            background-color: var(--brand-primary);
             color: #000;
         }
 
@@ -313,7 +314,7 @@ export default {
 
         &.router-link-exact-active,
         &.active {
-            color: $primary;
+            color: var(--brand-primary);
             font-weight: bold;
         }
 
@@ -409,7 +410,7 @@ main {
         align-items: center;
         justify-content: center;
         color: white;
-        background-color: $primary;
+        background-color: var(--brand-primary);
         width: 24px;
         height: 24px;
         margin-right: 5px;

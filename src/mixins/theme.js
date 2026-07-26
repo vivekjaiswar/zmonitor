@@ -123,6 +123,13 @@ export default {
             if (iconLink) {
                 iconLink.href = logoUrl || "/icon.svg";
             }
+
+            const color = this.info && this.info.customPrimaryColor;
+            if (color && /^#[0-9a-fA-F]{6}$/.test(color)) {
+                document.documentElement.style.setProperty("--brand-primary", color);
+            } else {
+                document.documentElement.style.removeProperty("--brand-primary");
+            }
         },
     },
 };
