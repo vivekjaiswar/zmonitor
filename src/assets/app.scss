@@ -2,6 +2,30 @@
 @import "multiselect.scss";
 @import "node_modules/bootstrap/scss/bootstrap";
 
+@font-face {
+    font-family: "Plex Sans";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("fonts/plex-sans-var.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Plex Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("fonts/plex-mono-400.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Plex Mono";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("fonts/plex-mono-500.woff2") format("woff2");
+}
+
 #app {
     font-family:
         "Twemoji Country Flags",
@@ -16,6 +40,22 @@
         segoe ui emoji,
         segoe ui symbol,
         noto color emoji;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+.title,
+.brand-mark {
+    font-family: $font-sans, sans-serif;
+}
+
+.num,
+.badge {
+    font-family: $font-mono;
+    font-variant-numeric: tabular-nums;
 }
 
 h1 {
@@ -108,7 +148,10 @@ optgroup {
 
 .shadow-box {
     //overflow: hidden;   // Forget why add this, but multiple select hide by this
-    box-shadow: 0 15px 70px rgba(0, 0, 0, 0.1);
+    box-shadow:
+        0 1px 2px rgba(11, 26, 44, 0.04),
+        0 8px 24px -12px rgba(11, 26, 44, 0.12);
+    border: 1px solid $card-border-color;
     padding: 10px;
     border-radius: 10px;
 
@@ -123,7 +166,7 @@ optgroup {
 }
 
 .btn-sm {
-    border-radius: 25px;
+    border-radius: $border-radius;
 }
 
 .btn-primary {
@@ -185,7 +228,7 @@ optgroup {
 .btn-outline-normal {
     padding: 4px 10px;
     border: 1px solid #ced4da;
-    border-radius: 25px;
+    border-radius: $border-radius;
     background-color: transparent;
 
     .dark & {
@@ -408,6 +451,7 @@ optgroup {
 
             &.active {
                 background-color: $dark-bg2;
+                border-left-color: $primary;
             }
         }
     }
@@ -498,8 +542,9 @@ optgroup {
     .item {
         display: block;
         text-decoration: none;
-        padding: 13px 15px 10px 15px;
-        border-radius: 10px;
+        padding: 13px 15px 10px 14px;
+        border-radius: 8px;
+        border-left: 3px solid transparent;
         transition: all ease-in-out 0.15s;
 
         &.disabled {
@@ -516,7 +561,8 @@ optgroup {
         }
 
         &.active {
-            background-color: #cdf8f4;
+            background-color: $highlight-white;
+            border-left-color: $primary;
         }
         .tags {
             // Removes margin to line up tags list with uptime percentage

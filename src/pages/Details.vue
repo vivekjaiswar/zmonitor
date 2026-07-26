@@ -138,8 +138,8 @@
                 </div>
             </div>
 
-            <div class="shadow-box">
-                <div class="row">
+            <div class="shadow-box status-band">
+                <div class="row align-items-center">
                     <div class="col-md-8">
                         <HeartbeatBar :monitor-id="monitor.id" />
                         <span class="word">
@@ -148,11 +148,10 @@
                             }})
                         </span>
                     </div>
-                    <div class="col-md-4 text-center">
+                    <div class="col-md-4 text-center text-md-end">
                         <span
-                            class="badge rounded-pill"
+                            class="badge rounded-pill status-pill"
                             :class="'bg-' + status.color"
-                            style="font-size: 30px"
                             data-testid="monitor-status"
                         >
                             {{ status.text }}
@@ -930,6 +929,14 @@ export default {
     margin-top: 25px;
 }
 
+.status-band {
+    .status-pill {
+        font-size: 22px;
+        padding: 8px 20px;
+        font-weight: 700;
+    }
+}
+
 .word {
     color: $secondary-text;
     font-size: 14px;
@@ -953,6 +960,40 @@ table {
 
     .col {
         margin: 20px 0;
+        border-right: 1px solid $card-border-color;
+
+        &:last-child {
+            border-right: none;
+        }
+    }
+
+    h4 {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: $secondary-text;
+        white-space: nowrap;
+    }
+
+    .num {
+        font-size: 20px;
+        white-space: nowrap;
+    }
+
+    .dark & .col {
+        border-right-color: $card-border-color-dark;
+    }
+}
+
+@media (max-width: 767px) {
+    .stats .col {
+        border-right: none !important;
+        border-bottom: 1px solid $card-border-color;
+    }
+
+    .dark .stats .col {
+        border-bottom-color: $card-border-color-dark;
     }
 }
 

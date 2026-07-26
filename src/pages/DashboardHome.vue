@@ -5,34 +5,32 @@
                 {{ $t("Quick Stats") }}
             </h1>
 
-            <div class="shadow-box big-padding text-center mb-3">
-                <div class="row">
-                    <div class="col">
-                        <h3>{{ $t("Up") }}</h3>
-                        <span class="num" :class="$root.stats.up > 0 ? 'text-success' : 'text-secondary'">
-                            {{ $root.stats.up }}
-                        </span>
-                    </div>
-                    <div class="col">
-                        <h3>{{ $t("Down") }}</h3>
-                        <span class="num" :class="$root.stats.down > 0 ? 'text-danger' : 'text-secondary'">
-                            {{ $root.stats.down }}
-                        </span>
-                    </div>
-                    <div class="col">
-                        <h3>{{ $t("Maintenance") }}</h3>
-                        <span class="num" :class="$root.stats.maintenance > 0 ? 'text-maintenance' : 'text-secondary'">
-                            {{ $root.stats.maintenance }}
-                        </span>
-                    </div>
-                    <div class="col">
-                        <h3>{{ $t("Unknown") }}</h3>
-                        <span class="num text-secondary">{{ $root.stats.unknown }}</span>
-                    </div>
-                    <div class="col">
-                        <h3>{{ $t("pauseDashboardHome") }}</h3>
-                        <span class="num text-secondary">{{ $root.stats.pause }}</span>
-                    </div>
+            <div class="stat-strip shadow-box mb-3">
+                <div class="stat-tile">
+                    <h3>{{ $t("Up") }}</h3>
+                    <span class="num" :class="$root.stats.up > 0 ? 'text-success' : 'text-secondary'">
+                        {{ $root.stats.up }}
+                    </span>
+                </div>
+                <div class="stat-tile">
+                    <h3>{{ $t("Down") }}</h3>
+                    <span class="num" :class="$root.stats.down > 0 ? 'text-danger' : 'text-secondary'">
+                        {{ $root.stats.down }}
+                    </span>
+                </div>
+                <div class="stat-tile">
+                    <h3>{{ $t("Maintenance") }}</h3>
+                    <span class="num" :class="$root.stats.maintenance > 0 ? 'text-maintenance' : 'text-secondary'">
+                        {{ $root.stats.maintenance }}
+                    </span>
+                </div>
+                <div class="stat-tile">
+                    <h3>{{ $t("Unknown") }}</h3>
+                    <span class="num text-secondary">{{ $root.stats.unknown }}</span>
+                </div>
+                <div class="stat-tile">
+                    <h3>{{ $t("pauseDashboardHome") }}</h3>
+                    <span class="num text-secondary">{{ $root.stats.pause }}</span>
                 </div>
             </div>
 
@@ -309,10 +307,48 @@ export default {
 @import "../assets/vars";
 
 .num {
-    font-size: 30px;
+    font-size: 28px;
     color: $primary;
-    font-weight: bold;
+    font-weight: 700;
     display: block;
+}
+
+.stat-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 0;
+    text-align: center;
+
+    .stat-tile {
+        padding: 16px 12px;
+        border-right: 1px solid $card-border-color;
+
+        &:last-child {
+            border-right: none;
+        }
+
+        h3 {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: $secondary-text;
+            margin-bottom: 6px;
+        }
+    }
+
+    .dark & .stat-tile {
+        border-right-color: $card-border-color-dark;
+    }
+
+    @media (max-width: 650px) {
+        grid-template-columns: repeat(2, 1fr);
+
+        .stat-tile {
+            border-right: none;
+            border-bottom: 1px solid $card-border-color;
+        }
+    }
 }
 
 .shadow-box {

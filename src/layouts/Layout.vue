@@ -13,13 +13,13 @@
         </div>
 
         <!-- Desktop header -->
-        <header v-if="!$root.isMobile" class="d-flex flex-wrap justify-content-center py-3 mb-3 border-bottom">
+        <header v-if="!$root.isMobile" class="d-flex flex-wrap justify-content-center py-2 mb-3 border-bottom">
             <router-link
                 to="/dashboard"
                 class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none"
             >
-                <img class="bi me-2 ms-4" width="40" height="40" :src="appLogoUrl" />
-                <span class="fs-4 title">{{ appName }}</span>
+                <img class="bi me-2 ms-4 brand-icon" width="28" height="28" :src="appLogoUrl" />
+                <span class="fs-5 title">{{ appName }}</span>
             </router-link>
 
             <a
@@ -254,6 +254,16 @@ export default {
 
 <style lang="scss" scoped>
 @import "../assets/vars.scss";
+
+.brand-icon {
+    border-radius: 6px;
+}
+
+.title {
+    font-family: $font-sans, sans-serif;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em;
+}
 
 .nav-link {
     &:hover {

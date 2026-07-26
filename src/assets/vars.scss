@@ -4,8 +4,21 @@ $danger: #dc3545;
 $warning: #f8a306;
 $maintenance: #7c3aed;
 $link-color: #111;
-$border-radius: 50rem;
+$border-radius: 10px;
 $secondary-text: #aaa;
+
+$font-sans:
+    "Plex Sans",
+    BlinkMacSystemFont,
+    segoe ui,
+    Roboto,
+    helvetica neue,
+    Arial,
+    noto sans,
+    sans-serif;
+$font-mono: "Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+$card-border-color: rgba(11, 26, 44, 0.1);
+$card-border-color-dark: rgba(232, 237, 244, 0.08);
 
 $highlight: #22d3ee;
 $highlight-white: #e3f7fc;
