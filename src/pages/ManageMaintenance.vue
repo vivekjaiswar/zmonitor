@@ -261,7 +261,7 @@ export default {
 
     &.scheduled {
         .circle {
-            background-color: $primary;
+            background-color: var(--brand-primary);
         }
     }
 

@@ -632,7 +632,7 @@ export default {
         }
 
         .dark & .dropdown-item.active {
-            background: $primary;
+            background: var(--brand-primary);
             color: $dark-font-color2;
         }
     }

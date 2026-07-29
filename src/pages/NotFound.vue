@@ -67,7 +67,7 @@ export default {
 
 .go-back {
     text-decoration: none;
-    color: $primary !important;
+    color: var(--brand-primary) !important;
 }
 
 .content {

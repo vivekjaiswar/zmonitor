@@ -188,7 +188,7 @@ export default {
 
     &.active {
         .circle {
-            background-color: $primary;
+            background-color: var(--brand-primary);
         }
     }
 

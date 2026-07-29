@@ -121,6 +121,9 @@ export default {
                 proxies: {
                     title: this.$t("Proxies"),
                 },
+                backup: {
+                    title: this.$t("Backup"),
+                },
                 about: {
                     title: this.$t("About"),
                 },
@@ -284,7 +287,7 @@ footer {
 
     .active .menu-item {
         background: $highlight-white;
-        border-left: 4px solid $primary;
+        border-left: 4px solid var(--brand-primary);
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
 

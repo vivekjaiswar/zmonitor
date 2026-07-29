@@ -150,7 +150,7 @@ export default {
             letter-spacing: 0.5px;
 
             &.status-up {
-                color: $primary;
+                color: $success;
             }
 
             &.status-down {

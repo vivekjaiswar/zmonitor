@@ -358,7 +358,7 @@ export default {
 }
 
 .link-active {
-    color: $primary;
+    color: var(--brand-primary);
 }
 
 .flip-list-move {
