@@ -22,6 +22,7 @@ import SetupDatabase from "./pages/SetupDatabase.vue";
 
 // Settings - Sub Pages
 import Appearance from "./components/settings/Appearance.vue";
+import Backup from "./components/settings/Backup.vue";
 import Branding from "./components/settings/Branding.vue";
 import General from "./components/settings/General.vue";
 const Notifications = () => import("./components/settings/Notifications.vue");
@@ -135,6 +136,10 @@ const routes = [
                             {
                                 path: "proxies",
                                 component: Proxies,
+                            },
+                            {
+                                path: "backup",
+                                component: Backup,
                             },
                             {
                                 path: "about",

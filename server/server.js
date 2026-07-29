@@ -797,6 +797,204 @@ let needSetup = false;
             }
         });
 
+        // Restore monitors + notifications from an exported backup JSON file.
+        // Accepts files from this project as well as real Uptime Kuma exports,
+        // since customers migrating in bring the latter.
+        socket.on("uploadBackup", async (uploadedJSON, importHandle, callback) => {
+            try {
+                checkLogin(socket);
+
+                let backupData;
+                try {
+                    backupData = JSON.parse(uploadedJSON);
+                } catch (e) {
+                    throw new Error("This doesn't look like a valid backup file (not valid JSON).");
+                }
+
+                if (!Array.isArray(backupData.monitorList)) {
+                    throw new Error("This doesn't look like a valid backup file (missing monitorList).");
+                }
+
+                log.info(
+                    "backup",
+                    `Restoring backup for User ID: ${socket.userID}, mode: ${importHandle}, ${backupData.monitorList.length} monitor(s), ${(backupData.notificationList || []).length} notification(s)`
+                );
+
+                if (importHandle === "overwrite") {
+                    const existing = await R.getAll("SELECT id, parent FROM monitor WHERE user_id = ? ", [
+                        socket.userID,
+                    ]);
+                    for (const row of existing) {
+                        if (row.parent === null) {
+                            await Monitor.deleteMonitorRecursively(row.id, socket.userID);
+                        }
+                    }
+                    await R.exec("DELETE FROM notification WHERE user_id = ? ", [socket.userID]);
+                }
+
+                // 1. Notifications first, so monitors can reference the new IDs
+                const notificationIDMap = {};
+                for (const oldNotification of backupData.notificationList || []) {
+                    let config;
+                    try {
+                        config = JSON.parse(oldNotification.config);
+                    } catch (e) {
+                        continue;
+                    }
+
+                    if (importHandle === "skip") {
+                        const existing = await R.findOne("notification", " name = ? AND user_id = ? ", [
+                            config.name,
+                            socket.userID,
+                        ]);
+                        if (existing) {
+                            notificationIDMap[oldNotification.id] = existing.id;
+                            continue;
+                        }
+                    }
+
+                    config.applyExisting = false;
+                    const bean = await Notification.save(config, null, socket.userID);
+                    notificationIDMap[oldNotification.id] = bean.id;
+                }
+                await sendNotificationList(socket);
+
+                // 2. Monitors. Two passes: create everything first (parent unset), then
+                // re-link parent/child (group) relationships once every new ID is known.
+                const monitorIDMap = {};
+                let importedCount = 0;
+                let skippedCount = 0;
+
+                for (const oldMonitor of backupData.monitorList) {
+                    if (importHandle === "skip") {
+                        const existing = await R.findOne("monitor", " name = ? AND user_id = ? ", [
+                            oldMonitor.name,
+                            socket.userID,
+                        ]);
+                        if (existing) {
+                            skippedCount++;
+                            continue;
+                        }
+                    }
+
+                    const monitor = { ...oldMonitor };
+                    const oldID = monitor.id;
+                    const oldParent = monitor.parent;
+                    const tags = monitor.tags || [];
+
+                    delete monitor.id;
+                    delete monitor.path;
+                    delete monitor.pathName;
+                    delete monitor.childrenIDs;
+                    delete monitor.tags;
+                    delete monitor.includeSensitiveData;
+                    // Computed/derived fields from toJSON() - not real columns
+                    delete monitor.forceInactive;
+                    delete monitor.screenshot;
+                    delete monitor.maintenance;
+
+                    const oldNotificationIDList = monitor.notificationIDList || {};
+                    const notificationIDList = {};
+                    for (const oldNotifID in oldNotificationIDList) {
+                        if (oldNotificationIDList[oldNotifID] && notificationIDMap[oldNotifID]) {
+                            notificationIDList[notificationIDMap[oldNotifID]] = true;
+                        }
+                    }
+                    delete monitor.notificationIDList;
+
+                    // Fields not present in older/upstream exports need defaults so
+                    // JSON.stringify() below doesn't write "undefined" into the DB.
+                    monitor.parent = null;
+                    monitor.accepted_statuscodes = Array.isArray(monitor.accepted_statuscodes)
+                        ? monitor.accepted_statuscodes
+                        : ["200-299"];
+                    monitor.kafkaProducerBrokers = monitor.kafkaProducerBrokers || [];
+                    monitor.kafkaProducerSaslOptions = monitor.kafkaProducerSaslOptions || {};
+                    monitor.conditions = monitor.conditions || [];
+                    monitor.rabbitmqNodes = monitor.rabbitmqNodes || [];
+
+                    let bean = R.dispense("monitor");
+
+                    monitor.accepted_statuscodes_json = JSON.stringify(monitor.accepted_statuscodes);
+                    delete monitor.accepted_statuscodes;
+                    monitor.kafkaProducerBrokers = JSON.stringify(monitor.kafkaProducerBrokers);
+                    monitor.kafkaProducerSaslOptions = JSON.stringify(monitor.kafkaProducerSaslOptions);
+                    monitor.conditions = JSON.stringify(monitor.conditions);
+                    monitor.rabbitmqNodes = JSON.stringify(monitor.rabbitmqNodes);
+
+                    bean.import(monitor);
+                    // Same explicit mapping the "add" handler uses - the multiple capitals in this
+                    // one trip up automatic camelCase-to-snake_case bean field conversion.
+                    if (monitor.retryOnlyOnStatusCodeFailure !== undefined) {
+                        bean.retry_only_on_status_code_failure = monitor.retryOnlyOnStatusCodeFailure;
+                    }
+                    bean.user_id = socket.userID;
+                    bean.validate();
+                    await R.store(bean);
+
+                    monitorIDMap[oldID] = { newID: bean.id, oldParent };
+
+                    await updateMonitorNotification(bean.id, notificationIDList);
+
+                    for (const t of tags) {
+                        let tagBean = await R.findOne("tag", " name = ? ", [t.name]);
+                        if (!tagBean) {
+                            tagBean = R.dispense("tag");
+                            tagBean.name = t.name;
+                            tagBean.color = t.color;
+                            await R.store(tagBean);
+                        }
+                        await R.exec("INSERT INTO monitor_tag (tag_id, monitor_id, value) VALUES (?, ?, ?)", [
+                            tagBean.id,
+                            bean.id,
+                            t.value,
+                        ]);
+                    }
+
+                    importedCount++;
+                }
+
+                // Re-link group/parent relationships now that every new ID exists
+                for (const oldID in monitorIDMap) {
+                    const { newID, oldParent } = monitorIDMap[oldID];
+                    if (oldParent !== null && oldParent !== undefined && monitorIDMap[oldParent]) {
+                        await R.exec("UPDATE monitor SET parent = ? WHERE id = ? ", [
+                            monitorIDMap[oldParent].newID,
+                            newID,
+                        ]);
+                    }
+                }
+
+                // Start any imported monitor that was active in the source backup
+                for (const oldID in monitorIDMap) {
+                    const { newID } = monitorIDMap[oldID];
+                    const bean = await R.findOne("monitor", " id = ? ", [newID]);
+                    if (bean && bean.active) {
+                        await startMonitor(socket.userID, newID);
+                    }
+                }
+
+                await server.sendMonitorList(socket);
+
+                log.info(
+                    "backup",
+                    `Backup restore complete for User ID: ${socket.userID}: ${importedCount} imported, ${skippedCount} skipped`
+                );
+
+                callback({
+                    ok: true,
+                    msg: "successBackupRestored",
+                    msgi18n: true,
+                });
+            } catch (e) {
+                log.error("backup", `Error restoring backup for User ID: ${socket.userID}: ${e.message}`);
+                callback({
+                    ok: false,
+                    msg: e.message,
+                });
+            }
+        });
+
         // Edit a monitor
         socket.on("editMonitor", async (monitor, callback) => {
             try {
