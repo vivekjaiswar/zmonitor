@@ -1500,7 +1500,7 @@ export default {
     font-size: 25px;
 
     .ok {
-        color: $primary;
+        color: $success;
     }
 
     .warning {
