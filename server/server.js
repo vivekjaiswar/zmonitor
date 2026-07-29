@@ -118,6 +118,36 @@ const {
 log.debug("server", "Importing Notification");
 const { Notification } = require("./notification");
 Notification.init();
+const { camelCaseToUnderscore } = require("redbean-node/dist/lib/helper/string-helper");
+
+// Real columns on the "monitor" table. Backup imports (ours or a real Uptime
+// Kuma export) carry monitor.toJSON()-shaped objects, which include several
+// computed/derived fields (e.g. forceInactive, screenshot, status,
+// maintenance) that don't exist as columns - passing those into bean.import()
+// throws "table monitor has no column named ...". Filtering against this
+// allowlist (rather than growing a denylist every time a new export format
+// surfaces one more computed field) keeps the import handler robust across
+// different Uptime Kuma versions/forks.
+const MONITOR_TABLE_COLUMNS = new Set([
+    "name", "active", "interval", "url", "type", "weight", "hostname", "port", "keyword", "maxretries",
+    "ignore_tls", "upside_down", "maxredirects", "accepted_statuscodes_json", "dns_resolve_type",
+    "dns_resolve_server", "dns_last_result", "retry_interval", "push_token", "method", "body", "headers",
+    "basic_auth_user", "basic_auth_pass", "docker_host", "docker_container", "proxy_id", "expiry_notification",
+    "mqtt_topic", "mqtt_success_message", "mqtt_username", "mqtt_password", "database_connection_string",
+    "database_query", "auth_method", "auth_domain", "auth_workstation", "grpc_url", "grpc_protobuf", "grpc_body",
+    "grpc_metadata", "grpc_method", "grpc_service_name", "grpc_enable_tls", "radius_username", "radius_password",
+    "radius_calling_station_id", "radius_called_station_id", "radius_secret", "resend_interval", "packet_size",
+    "game", "http_body_encoding", "description", "tls_ca", "tls_cert", "tls_key", "parent", "invert_keyword",
+    "json_path", "expected_value", "kafka_producer_topic", "kafka_producer_brokers", "kafka_producer_sasl_options",
+    "kafka_producer_message", "oauth_client_id", "oauth_client_secret", "oauth_token_url", "oauth_scopes",
+    "oauth_auth_method", "timeout", "gamedig_given_port_only", "kafka_producer_ssl",
+    "kafka_producer_allow_auto_topic_creation", "mqtt_check_type", "remote_browser", "snmp_oid", "snmp_version",
+    "json_path_operator", "cache_bust", "conditions", "rabbitmq_nodes", "rabbitmq_username", "rabbitmq_password",
+    "smtp_security", "ws_ignore_sec_websocket_accept_header", "ws_subprotocol", "ping_count", "ping_numeric",
+    "ping_per_request_timeout", "ip_family", "oauth_audience", "mqtt_websocket_path", "domain_expiry_notification",
+    "save_response", "save_error_response", "response_max_length", "system_service_name", "subtype", "location",
+    "protocol", "snmp_v3_username", "expected_tls_alert", "screenshot_delay", "bearer_token", "gamedig_token",
+]);
 log.debug("server", "Importing Web-Push");
 const webpush = require("web-push");
 
@@ -881,17 +911,7 @@ let needSetup = false;
                     const oldID = monitor.id;
                     const oldParent = monitor.parent;
                     const tags = monitor.tags || [];
-
-                    delete monitor.id;
-                    delete monitor.path;
-                    delete monitor.pathName;
-                    delete monitor.childrenIDs;
-                    delete monitor.tags;
-                    delete monitor.includeSensitiveData;
-                    // Computed/derived fields from toJSON() - not real columns
-                    delete monitor.forceInactive;
-                    delete monitor.screenshot;
-                    delete monitor.maintenance;
+                    const retryOnlyOnStatusCodeFailure = monitor.retryOnlyOnStatusCodeFailure;
 
                     const oldNotificationIDList = monitor.notificationIDList || {};
                     const notificationIDList = {};
@@ -922,11 +942,20 @@ let needSetup = false;
                     monitor.conditions = JSON.stringify(monitor.conditions);
                     monitor.rabbitmqNodes = JSON.stringify(monitor.rabbitmqNodes);
 
+                    // Drop anything that isn't a real column (id, tags, notificationIDList,
+                    // path/pathName/childrenIDs, and computed fields like forceInactive,
+                    // screenshot, maintenance, status - see MONITOR_TABLE_COLUMNS above).
+                    for (const key of Object.keys(monitor)) {
+                        if (!MONITOR_TABLE_COLUMNS.has(camelCaseToUnderscore(key))) {
+                            delete monitor[key];
+                        }
+                    }
+
                     bean.import(monitor);
                     // Same explicit mapping the "add" handler uses - the multiple capitals in this
                     // one trip up automatic camelCase-to-snake_case bean field conversion.
-                    if (monitor.retryOnlyOnStatusCodeFailure !== undefined) {
-                        bean.retry_only_on_status_code_failure = monitor.retryOnlyOnStatusCodeFailure;
+                    if (retryOnlyOnStatusCodeFailure !== undefined) {
+                        bean.retry_only_on_status_code_failure = retryOnlyOnStatusCodeFailure;
                     }
                     bean.user_id = socket.userID;
                     bean.validate();
