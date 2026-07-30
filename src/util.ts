@@ -43,7 +43,6 @@ export const SQL_DATE_FORMAT = "YYYY-MM-DD";
 export const SQL_DATETIME_FORMAT = "YYYY-MM-DD HH:mm:ss";
 export const SQL_DATETIME_FORMAT_WITHOUT_SECOND = "YYYY-MM-DD HH:mm";
 
-export const MAX_INTERVAL_SECOND = 2073600; // 24 days
 export const MIN_INTERVAL_SECOND = 1; // 1 second
 
 export const INCIDENT_PAGE_SIZE = 10;
@@ -794,4 +793,5 @@ export const TYPES_WITH_DOMAIN_EXPIRY_SUPPORT_VIA_FIELD = {
     radius: "hostname",
     "tailscale-ping": "hostname",
     "sip-options": "hostname",
+    ntp: "hostname",
 } as const;

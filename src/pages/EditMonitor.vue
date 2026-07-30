@@ -81,6 +81,7 @@
                                         <option value="json-query">HTTP(s) - {{ $t("Json Query") }}</option>
                                         <option value="kafka-producer">Kafka Producer</option>
                                         <option value="mqtt">MQTT</option>
+                                        <option value="ntp">NTP</option>
                                         <option value="rabbitmq">RabbitMQ</option>
                                         <option v-if="!$root.info.isContainer" value="sip-options">
                                             SIP Options Ping
@@ -472,7 +473,7 @@
                             </template>
 
                             <!-- Hostname -->
-                            <!-- TCP Port / Ping / DNS / Steam / MQTT / Radius / Tailscale Ping / SNMP / SMTP / SIP Options only -->
+                            <!-- TCP Port / Ping / DNS / Steam / MQTT / Radius / Tailscale Ping / SNMP / SMTP / SIP Options / NTP only -->
                             <div
                                 v-if="
                                     monitor.type === 'port' ||
@@ -485,7 +486,8 @@
                                     monitor.type === 'tailscale-ping' ||
                                     monitor.type === 'smtp' ||
                                     monitor.type === 'snmp' ||
-                                    monitor.type === 'sip-options'
+                                    monitor.type === 'sip-options' ||
+                                    monitor.type === 'ntp'
                                 "
                                 class="my-3"
                             >
@@ -501,7 +503,7 @@
                                 <div v-if="monitor.type === 'mqtt'" class="form-text">
                                     <i18n-t tag="p" keypath="mqttHostnameTip">
                                         <template #hostnameFormat>
-                                            <code>[mqtt,ws,wss]://hostname</code>
+                                            <code>[mqtt,mqtts,ws,wss]://hostname</code>
                                         </template>
                                     </i18n-t>
                                 </div>
@@ -686,7 +688,7 @@
                             </template>
 
                             <!-- Port -->
-                            <!-- For TCP Port / Steam / MQTT / Radius Type / SNMP / SIP Options -->
+                            <!-- For TCP Port / Steam / MQTT / Radius Type / SNMP / SIP Options / NTP -->
                             <div
                                 v-if="
                                     monitor.type === 'port' ||
@@ -697,6 +699,7 @@
                                     monitor.type === 'smtp' ||
                                     monitor.type === 'snmp' ||
                                     monitor.type === 'sip-options' ||
+                                    monitor.type === 'ntp' ||
                                     (monitor.type === 'globalping' &&
                                         monitor.subtype === 'ping' &&
                                         monitor.protocol === 'TCP')
@@ -849,6 +852,63 @@
                                             </a>
                                         </template>
                                     </i18n-t>
+                                </div>
+                            </template>
+
+                            <!-- NTP Configuration -->
+                            <template v-if="monitor.type === 'ntp'">
+                                <h4 class="mt-4">{{ $t("ntpThresholdsTitle") }}</h4>
+
+                                <div class="my-3">
+                                    <label for="ntp-stratum-threshold" class="form-label">
+                                        {{ $t("ntpStratumThreshold") }}
+                                    </label>
+                                    <input
+                                        id="ntp-stratum-threshold"
+                                        v-model.number="monitor.ntpStratumThreshold"
+                                        type="number"
+                                        class="form-control"
+                                        min="1"
+                                        max="15"
+                                        placeholder="5"
+                                    />
+                                    <div class="form-text">
+                                        {{ $t("ntpStratumThresholdHelp") }}
+                                    </div>
+                                </div>
+
+                                <div class="my-3">
+                                    <label for="ntp-offset-threshold" class="form-label">
+                                        {{ $t("ntpOffsetThreshold") }}
+                                    </label>
+                                    <input
+                                        id="ntp-offset-threshold"
+                                        v-model.number="monitor.ntpTimeOffsetThreshold"
+                                        type="number"
+                                        class="form-control"
+                                        min="1"
+                                        placeholder="1000"
+                                    />
+                                    <div class="form-text">
+                                        {{ $t("ntpOffsetThresholdHelp") }}
+                                    </div>
+                                </div>
+
+                                <div class="my-3">
+                                    <label for="ntp-dispersion-threshold" class="form-label">
+                                        {{ $t("ntpDispersionThreshold") }}
+                                    </label>
+                                    <input
+                                        id="ntp-dispersion-threshold"
+                                        v-model.number="monitor.ntpRootDispersionThreshold"
+                                        type="number"
+                                        class="form-control"
+                                        min="1"
+                                        placeholder="500"
+                                    />
+                                    <div class="form-text">
+                                        {{ $t("ntpDispersionThresholdHelp") }}
+                                    </div>
                                 </div>
                             </template>
 
@@ -1058,7 +1118,7 @@
                                         {{ $t("mqttWebSocketPath") }}
                                     </label>
                                     <input
-                                        v-if="/wss?:\/\/.+/.test(monitor.hostname)"
+                                        v-if="/(mqtts?|wss?):\/\/.+/.test(monitor.hostname)"
                                         id="mqttWebsocketPath"
                                         v-model="monitor.mqttWebsocketPath"
                                         type="text"
@@ -1421,7 +1481,6 @@
                                     class="form-control"
                                     required
                                     :min="minInterval"
-                                    :max="maxInterval"
                                     step="1"
                                     @focus="lowIntervalConfirmation.editedValue = true"
                                     @blur="finishUpdateInterval"
@@ -3111,7 +3170,6 @@ import ProxyDialog from "../components/ProxyDialog.vue";
 import TagsManager from "../components/TagsManager.vue";
 import {
     genSecret,
-    MAX_INTERVAL_SECOND,
     MIN_INTERVAL_SECOND,
     sleep,
     TYPES_WITH_DOMAIN_EXPIRY_SUPPORT_VIA_FIELD,
@@ -3196,6 +3254,9 @@ const monitorDefaults = {
     rabbitmqPassword: "",
     conditions: [],
     system_service_name: "",
+    ntpStratumThreshold: 5,
+    ntpTimeOffsetThreshold: 1000,
+    ntpRootDispersionThreshold: 500,
 };
 
 export default {
@@ -3217,7 +3278,6 @@ export default {
     data() {
         return {
             minInterval: MIN_INTERVAL_SECOND,
-            maxInterval: MAX_INTERVAL_SECOND,
             processing: false,
             monitor: {
                 notificationIDList: {},
@@ -3644,14 +3704,26 @@ message HealthCheckResponse {
                 }
             }
 
+            // NTP servers may rate-limit frequent queries; default to 5 minutes
+            if (this.monitor.type === "ntp" && (oldType || this.isAdd)) {
+                this.monitor.interval = 300;
+            }
+
             // Set default port for DNS if not already defined
-            if (!this.monitor.port || this.monitor.port === "53" || this.monitor.port === "1812") {
+            if (
+                !this.monitor.port ||
+                this.monitor.port === "53" ||
+                this.monitor.port === "1812" ||
+                this.monitor.port === "123"
+            ) {
                 if (this.monitor.type === "dns") {
                     this.monitor.port = "53";
                 } else if (this.monitor.type === "radius") {
                     this.monitor.port = "1812";
                 } else if (this.monitor.type === "snmp") {
                     this.monitor.port = "161";
+                } else if (this.monitor.type === "ntp") {
+                    this.monitor.port = "123";
                 } else if (this.monitor.type === "globalping" && this.monitor.subtype === "ping") {
                     this.monitor.port = "80";
                 } else {
@@ -3997,7 +4069,7 @@ message HealthCheckResponse {
 
             // Validate hostname field input for various monitors
             if (
-                ["dns", "port", "ping", "steam", "gamedig", "radius", "tailscale-ping", "smtp", "snmp"].includes(
+                ["dns", "port", "ping", "steam", "gamedig", "radius", "tailscale-ping", "smtp", "snmp", "ntp"].includes(
                     this.monitor.type
                 ) &&
                 this.monitor.hostname
@@ -4038,7 +4110,7 @@ message HealthCheckResponse {
                 "json-query": ["http:", "https:"],
                 "websocket-upgrade": ["ws:", "wss:"],
                 "real-browser": null,
-                mqtt: ["mqtt:", "ws:", "wss:"],
+                mqtt: ["mqtt:", "mqtts:", "ws:", "wss:"],
             };
 
             if (this.monitor.type in acceptList) {

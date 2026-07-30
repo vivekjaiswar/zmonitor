@@ -147,6 +147,7 @@ const MONITOR_TABLE_COLUMNS = new Set([
     "ping_per_request_timeout", "ip_family", "oauth_audience", "mqtt_websocket_path", "domain_expiry_notification",
     "save_response", "save_error_response", "response_max_length", "system_service_name", "subtype", "location",
     "protocol", "snmp_v3_username", "expected_tls_alert", "screenshot_delay", "bearer_token", "gamedig_token",
+    "ntp_stratum_threshold", "ntp_time_offset_threshold", "ntp_root_dispersion_threshold",
 ]);
 log.debug("server", "Importing Web-Push");
 const webpush = require("web-push");
@@ -1161,6 +1162,9 @@ let needSetup = false;
                 bean.manual_status = monitor.manual_status;
                 bean.system_service_name = monitor.system_service_name;
                 bean.expected_tls_alert = monitor.expectedTlsAlert;
+                bean.ntp_stratum_threshold = monitor.ntpStratumThreshold;
+                bean.ntp_time_offset_threshold = monitor.ntpTimeOffsetThreshold;
+                bean.ntp_root_dispersion_threshold = monitor.ntpRootDispersionThreshold;
 
                 // ping advanced options
                 bean.ping_numeric = monitor.ping_numeric;

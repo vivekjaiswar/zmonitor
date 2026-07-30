@@ -86,6 +86,7 @@
                     MQTT: {{ monitor.hostname }}:{{ monitor.port }}/{{ monitor.mqttTopic }}
                 </span>
                 <span v-if="monitor.type === 'mysql'">{{ filterPassword(monitor.databaseConnectionString) }}</span>
+                <span v-if="monitor.type === 'ntp'">NTP: {{ monitor.hostname }}:{{ monitor.port }}</span>
                 <span v-if="monitor.type === 'oracledb'">
                     {{
                         $t("oracledbConnectionString", {
