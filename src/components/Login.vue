@@ -14,9 +14,10 @@
         </div>
 
         <div class="login-form-side">
-            <div class="form">
+            <div class="dot-bg" aria-hidden="true"></div>
+            <div class="form shadow-box">
                 <form @submit.prevent="submit">
-                    <h1 class="h3 mb-1 fw-bold">{{ $t("Login") }}</h1>
+                    <h1 class="title">{{ $t("Login") }}</h1>
                     <p class="sub">{{ $t("loginWelcomeBack") }}</p>
 
                     <div v-if="!tokenRequired" class="form-floating">
@@ -62,21 +63,19 @@
                         </div>
                     </div>
 
-                    <div class="form-check mb-3 mt-3 d-flex justify-content-center pe-4">
-                        <div class="form-check">
-                            <input
-                                id="remember"
-                                v-model="$root.remember"
-                                type="checkbox"
-                                value="remember-me"
-                                class="form-check-input"
-                            />
-
-                            <label class="form-check-label" for="remember">
-                                {{ $t("Remember me") }}
-                            </label>
-                        </div>
+                    <div class="remember-row">
+                        <input
+                            id="remember"
+                            v-model="$root.remember"
+                            type="checkbox"
+                            value="remember-me"
+                            class="form-check-input"
+                        />
+                        <label class="form-check-label" for="remember">
+                            {{ $t("Remember me") }}
+                        </label>
                     </div>
+
                     <button class="w-100 btn btn-primary" type="submit" :disabled="processing">
                         {{ $t("Login") }}
                     </button>
@@ -204,6 +203,18 @@ export default {
     }
 }
 
+@media (max-width: 1100px) and (min-width: 771px) {
+    .login-brand {
+        flex-basis: 38%;
+        padding: 32px;
+        gap: 16px;
+    }
+
+    .login-brand-mid h2 {
+        font-size: 21px;
+    }
+}
+
 @keyframes login-sweep {
     from {
         transform: translate(-4%, -2%);
@@ -248,23 +259,51 @@ export default {
 
 .login-form-side {
     flex: 1;
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 40px;
+    overflow: hidden;
+}
+
+.dot-bg {
+    position: absolute;
+    inset: 0;
+    opacity: 0.4;
+    background-image: radial-gradient(circle, $card-border-color 1px, transparent 1.4px);
+    background-size: 24px 24px;
+    mask-image: radial-gradient(circle at 50% 40%, #000 0%, transparent 72%);
+
+    .dark & {
+        opacity: 0.5;
+        background-image: radial-gradient(circle, $dark-border-color 1px, transparent 1.4px);
+    }
 }
 
 .form {
+    position: relative;
     width: 100%;
-    max-width: 330px;
-    padding: 15px;
+    max-width: 380px;
+    padding: 40px 36px;
     margin: auto;
     text-align: left;
+    background-color: #fff;
+
+    .dark & {
+        background-color: $dark-bg;
+    }
+
+    .title {
+        font-size: 26px;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
 
     .sub {
         color: $secondary-text;
-        font-size: 13px;
-        margin-bottom: 24px;
+        font-size: 13.5px;
+        margin-bottom: 28px;
     }
 }
 
@@ -275,6 +314,56 @@ export default {
 
     > .form-control {
         padding-left: 1.3rem;
+        padding-top: 1.2rem;
+        padding-bottom: 0.5rem;
+        min-height: calc(3.2rem + 2px);
+        border-radius: $border-radius;
+        border-color: $card-border-color;
+        transition:
+            border-color 0.15s ease,
+            box-shadow 0.15s ease;
+
+        &:focus {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 0.2rem rgba(20, 110, 210, 0.15);
+        }
+    }
+
+    .dark & > .form-control {
+        border-color: $dark-border-color;
+    }
+}
+
+.remember-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0 20px;
+
+    .form-check-input {
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .form-check-label {
+        font-size: 13.5px;
+        cursor: pointer;
+        user-select: none;
+    }
+}
+
+.form .btn-primary {
+    border-radius: $border-radius;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-weight: 600;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+
+    &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px -6px rgba(20, 110, 210, 0.5);
     }
 }
 
@@ -285,6 +374,21 @@ export default {
 
     .login-form-side {
         padding: 20px;
+    }
+
+    .form {
+        max-width: 400px;
+        padding: 32px 24px;
+    }
+}
+
+@media (max-width: 400px) {
+    .form {
+        padding: 28px 18px;
+
+        .title {
+            font-size: 22px;
+        }
     }
 }
 </style>
