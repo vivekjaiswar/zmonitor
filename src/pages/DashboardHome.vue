@@ -6,19 +6,19 @@
             </h1>
 
             <div class="stat-strip shadow-box mb-3">
-                <div class="stat-tile">
+                <div class="stat-tile stat-tile-clickable" @click="filterByStatus(1)">
                     <h3>{{ $t("Up") }}</h3>
                     <span class="num" :class="$root.stats.up > 0 ? 'text-success' : 'text-secondary'">
                         {{ $root.stats.up }}
                     </span>
                 </div>
-                <div class="stat-tile">
+                <div class="stat-tile stat-tile-clickable" @click="filterByStatus(0)">
                     <h3>{{ $t("Down") }}</h3>
                     <span class="num" :class="$root.stats.down > 0 ? 'text-danger' : 'text-secondary'">
                         {{ $root.stats.down }}
                     </span>
                 </div>
-                <div class="stat-tile">
+                <div class="stat-tile stat-tile-clickable" @click="filterByStatus(3)">
                     <h3>{{ $t("Maintenance") }}</h3>
                     <span class="num" :class="$root.stats.maintenance > 0 ? 'text-maintenance' : 'text-secondary'">
                         {{ $root.stats.maintenance }}
@@ -28,7 +28,7 @@
                     <h3>{{ $t("Unknown") }}</h3>
                     <span class="num text-secondary">{{ $root.stats.unknown }}</span>
                 </div>
-                <div class="stat-tile">
+                <div class="stat-tile stat-tile-clickable" @click="filterByActive(false)">
                     <h3>{{ $t("pauseDashboardHome") }}</h3>
                     <span class="num text-secondary">{{ $root.stats.pause }}</span>
                 </div>
@@ -181,6 +181,24 @@ export default {
     },
 
     methods: {
+        /**
+         * Request the monitor list sidebar to filter by heartbeat status.
+         * @param {number} status Status code (0=down, 1=up, 2=pending, 3=maintenance)
+         * @returns {void}
+         */
+        filterByStatus(status) {
+            this.$root.dashboardFilterRequest = { status: [status], active: null, tags: null };
+        },
+
+        /**
+         * Request the monitor list sidebar to filter by active/paused state.
+         * @param {boolean} active True for running monitors, false for paused
+         * @returns {void}
+         */
+        filterByActive(active) {
+            this.$root.dashboardFilterRequest = { status: null, active: [active], tags: null };
+        },
+
         /**
          * Returns the group (parent) name for a monitor, or empty string if none.
          * @param {number} monitorID - The monitor ID.
@@ -335,6 +353,19 @@ export default {
             color: $secondary-text;
             margin-bottom: 6px;
         }
+    }
+
+    .stat-tile-clickable {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+
+        &:hover {
+            background-color: $highlight-white;
+        }
+    }
+
+    .dark & .stat-tile-clickable:hover {
+        background-color: $dark-font-color2;
     }
 
     .dark & .stat-tile {

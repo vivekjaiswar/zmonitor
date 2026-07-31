@@ -271,6 +271,12 @@ export default {
         },
     },
     watch: {
+        "$root.dashboardFilterRequest"(newFilter) {
+            if (newFilter) {
+                this.updateFilter(newFilter);
+                this.$root.dashboardFilterRequest = null;
+            }
+        },
         searchText() {
             for (let monitor of this.sortedMonitorList) {
                 if (!this.selectedMonitors[monitor.id]) {
@@ -535,12 +541,14 @@ export default {
             }
 
             // filter by search text
-            // finds monitor name, tag name or tag value
+            // finds monitor name, hostname/URL (IP), tag name or tag value
             let searchTextMatch = true;
             if (this.searchText !== "") {
                 const loweredSearchText = this.searchText.toLowerCase();
                 searchTextMatch =
                     monitor.name.toLowerCase().includes(loweredSearchText) ||
+                    monitor.hostname?.toLowerCase().includes(loweredSearchText) ||
+                    monitor.url?.toLowerCase().includes(loweredSearchText) ||
                     monitor.tags.find(
                         (tag) =>
                             tag.name.toLowerCase().includes(loweredSearchText) ||
