@@ -106,6 +106,9 @@ export default {
                 users: {
                     title: this.$t("Users"),
                 },
+                logs: {
+                    title: this.$t("Logs"),
+                },
                 "monitor-history": {
                     title: this.$t("Monitor History"),
                 },

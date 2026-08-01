@@ -11,7 +11,7 @@
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CONSOLE_STYLE_FgViolet = exports.CONSOLE_STYLE_FgLightBlue = exports.CONSOLE_STYLE_FgLightGreen = exports.CONSOLE_STYLE_FgOrange = exports.CONSOLE_STYLE_FgGray = exports.CONSOLE_STYLE_FgWhite = exports.CONSOLE_STYLE_FgCyan = exports.CONSOLE_STYLE_FgMagenta = exports.CONSOLE_STYLE_FgBlue = exports.CONSOLE_STYLE_FgYellow = exports.CONSOLE_STYLE_FgGreen = exports.CONSOLE_STYLE_FgRed = exports.CONSOLE_STYLE_FgBlack = exports.CONSOLE_STYLE_Hidden = exports.CONSOLE_STYLE_Reverse = exports.CONSOLE_STYLE_Blink = exports.CONSOLE_STYLE_Underscore = exports.CONSOLE_STYLE_Dim = exports.CONSOLE_STYLE_Bright = exports.CONSOLE_STYLE_Reset = exports.RESPONSE_BODY_LENGTH_MAX = exports.RESPONSE_BODY_LENGTH_DEFAULT = exports.PING_PER_REQUEST_TIMEOUT_DEFAULT = exports.PING_PER_REQUEST_TIMEOUT_MAX = exports.PING_PER_REQUEST_TIMEOUT_MIN = exports.PING_COUNT_DEFAULT = exports.PING_COUNT_MAX = exports.PING_COUNT_MIN = exports.PING_GLOBAL_TIMEOUT_DEFAULT = exports.PING_GLOBAL_TIMEOUT_MAX = exports.PING_GLOBAL_TIMEOUT_MIN = exports.PING_PACKET_SIZE_DEFAULT = exports.PING_PACKET_SIZE_MAX = exports.PING_PACKET_SIZE_MIN = exports.INCIDENT_PAGE_SIZE = exports.MIN_INTERVAL_SECOND = exports.SQL_DATETIME_FORMAT_WITHOUT_SECOND = exports.SQL_DATETIME_FORMAT = exports.SQL_DATE_FORMAT = exports.STATUS_PAGE_MAINTENANCE = exports.STATUS_PAGE_PARTIAL_DOWN = exports.STATUS_PAGE_ALL_UP = exports.STATUS_PAGE_ALL_DOWN = exports.MAINTENANCE = exports.PENDING = exports.UP = exports.DOWN = exports.appName = exports.isNode = exports.isDev = void 0;
-exports.TYPES_WITH_DOMAIN_EXPIRY_SUPPORT_VIA_FIELD = exports.evaluateJsonQuery = exports.intHash = exports.localToUTC = exports.utcToLocal = exports.utcToISODateTime = exports.isoToUTCDateTime = exports.parseTimeFromTimeObject = exports.parseTimeObject = exports.getMonitorRelativeURL = exports.genSecret = exports.getCryptoRandomInt = exports.getRandomInt = exports.getRandomArbitrary = exports.TimeLogger = exports.polyfill = exports.log = exports.debug = exports.ucfirst = exports.sleep = exports.flipStatus = exports.badgeConstants = exports.CONSOLE_STYLE_BgGray = exports.CONSOLE_STYLE_BgWhite = exports.CONSOLE_STYLE_BgCyan = exports.CONSOLE_STYLE_BgMagenta = exports.CONSOLE_STYLE_BgBlue = exports.CONSOLE_STYLE_BgYellow = exports.CONSOLE_STYLE_BgGreen = exports.CONSOLE_STYLE_BgRed = exports.CONSOLE_STYLE_BgBlack = exports.CONSOLE_STYLE_FgPink = exports.CONSOLE_STYLE_FgBrown = void 0;
+exports.TYPES_WITH_DOMAIN_EXPIRY_SUPPORT_VIA_FIELD = exports.evaluateJsonQuery = exports.intHash = exports.localToUTC = exports.utcToLocal = exports.utcToISODateTime = exports.isoToUTCDateTime = exports.parseTimeFromTimeObject = exports.parseTimeObject = exports.getMonitorRelativeURL = exports.genSecret = exports.getCryptoRandomInt = exports.getRandomInt = exports.getRandomArbitrary = exports.TimeLogger = exports.polyfill = exports.log = exports.getLogDir = exports.debug = exports.ucfirst = exports.sleep = exports.flipStatus = exports.badgeConstants = exports.CONSOLE_STYLE_BgGray = exports.CONSOLE_STYLE_BgWhite = exports.CONSOLE_STYLE_BgCyan = exports.CONSOLE_STYLE_BgMagenta = exports.CONSOLE_STYLE_BgBlue = exports.CONSOLE_STYLE_BgYellow = exports.CONSOLE_STYLE_BgGreen = exports.CONSOLE_STYLE_BgRed = exports.CONSOLE_STYLE_BgBlack = exports.CONSOLE_STYLE_FgPink = exports.CONSOLE_STYLE_FgBrown = void 0;
 const dayjs_1 = require("dayjs");
 const jsonata = require("jsonata");
 exports.isDev = process.env.NODE_ENV === "development";
@@ -138,6 +138,73 @@ function debug(msg) {
     exports.log.log("", "debug", msg);
 }
 exports.debug = debug;
+const LOG_MAX_SIZE_BYTES = 5 * 1024 * 1024;
+const LOG_MAX_FILES = 5;
+let logDirEnsured = false;
+function getLogDir() {
+    const path = require("path");
+    const dataDir = process.env.DATA_DIR || "./data/";
+    return path.join(dataDir, "logs");
+}
+exports.getLogDir = getLogDir;
+function rotateLogFile(dir, filePath) {
+    const fs = require("fs");
+    const path = require("path");
+    const oldestPath = path.join(dir, `app.log.${LOG_MAX_FILES}`);
+    if (fs.existsSync(oldestPath)) {
+        fs.unlinkSync(oldestPath);
+    }
+    for (let i = LOG_MAX_FILES - 1; i >= 1; i--) {
+        const src = path.join(dir, `app.log.${i}`);
+        if (fs.existsSync(src)) {
+            fs.renameSync(src, path.join(dir, `app.log.${i + 1}`));
+        }
+    }
+    fs.renameSync(filePath, path.join(dir, "app.log.1"));
+}
+function formatLogFileLine(module, level, msg) {
+    const now = dayjs.tz ? dayjs.tz(new Date()).format() : dayjs().format();
+    const msgString = msg
+        .map((m) => {
+        if (typeof m === "string") {
+            return m;
+        }
+        else {
+            try {
+                return JSON.stringify(m);
+            }
+            catch (_a) {
+                return String(m);
+            }
+        }
+    })
+        .join(" ");
+    return `${now} [${module.toUpperCase()}] ${level.toUpperCase()}: ${msgString}`;
+}
+function appendToLogFile(line) {
+    try {
+        const fs = require("fs");
+        const path = require("path");
+        const dir = getLogDir();
+        if (!logDirEnsured) {
+            fs.mkdirSync(dir, { recursive: true });
+            logDirEnsured = true;
+        }
+        const filePath = path.join(dir, "app.log");
+        let size = 0;
+        try {
+            size = fs.statSync(filePath).size;
+        }
+        catch (_a) {
+        }
+        if (size >= LOG_MAX_SIZE_BYTES) {
+            rotateLogFile(dir, filePath);
+        }
+        fs.appendFileSync(filePath, line + "\n");
+    }
+    catch (_b) {
+    }
+}
 class Logger {
     constructor() {
         this.hideLog = {
@@ -159,10 +226,13 @@ class Logger {
         }
     }
     log(module, level, ...msg) {
-        if (level === "debug" && !exports.isDev) {
+        if (this.hideLog[level] && this.hideLog[level].includes(module.toLowerCase())) {
             return;
         }
-        if (this.hideLog[level] && this.hideLog[level].includes(module.toLowerCase())) {
+        if (exports.isNode) {
+            appendToLogFile(formatLogFileLine(module, level, msg));
+        }
+        if (level === "debug" && !exports.isDev) {
             return;
         }
         module = module.toUpperCase();

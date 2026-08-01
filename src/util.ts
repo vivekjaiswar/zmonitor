@@ -210,6 +210,122 @@ export function debug(msg: unknown) {
     log.log("", "debug", msg);
 }
 
+// File-based log persistence (Node/backend only). Logs are written to the
+// same data directory as the database so they survive container recreation
+// (the previous behaviour - console-only - meant every redeploy discarded
+// all history, and there was no way to view logs at all without shell/Docker
+// access to the server). Rotates by size to avoid unbounded growth, since
+// monitor check activity (previously debug-level, console-only in
+// production) is now persisted here too regardless of console verbosity.
+const LOG_MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB per file
+const LOG_MAX_FILES = 5; // keep this many rotated files (~25MB total)
+let logDirEnsured = false;
+
+/**
+ * Resolve the directory log files are written to. Mirrors Database's
+ * DATA_DIR-based resolution (without the dev git-branch nicety) so logs land
+ * in the same bind-mounted volume as the database in production.
+ * @returns {string} Path to the log directory
+ */
+export function getLogDir(): string {
+    const path = require("path");
+    const dataDir = process.env.DATA_DIR || "./data/";
+    return path.join(dataDir, "logs");
+}
+
+/**
+ * Rotate app.log -> app.log.1 -> app.log.2 ... dropping the oldest once
+ * LOG_MAX_FILES is exceeded.
+ * @param dir Log directory
+ * @param filePath Path to the current app.log
+ * @returns {void}
+ */
+function rotateLogFile(dir: string, filePath: string): void {
+    const fs = require("fs");
+    const path = require("path");
+
+    const oldestPath = path.join(dir, `app.log.${LOG_MAX_FILES}`);
+    if (fs.existsSync(oldestPath)) {
+        fs.unlinkSync(oldestPath);
+    }
+
+    for (let i = LOG_MAX_FILES - 1; i >= 1; i--) {
+        const src = path.join(dir, `app.log.${i}`);
+        if (fs.existsSync(src)) {
+            fs.renameSync(src, path.join(dir, `app.log.${i + 1}`));
+        }
+    }
+
+    fs.renameSync(filePath, path.join(dir, "app.log.1"));
+}
+
+/**
+ * Build a plain-text log line for file persistence (no ANSI color codes,
+ * unlike the console output).
+ * @param module The module the log comes from
+ * @param level Log level. One of info, warn, error, debug.
+ * @param msg Message arguments to write
+ * @returns {string} Formatted log line
+ */
+function formatLogFileLine(module: string, level: LogLevel, msg: unknown[]): string {
+    const now = dayjs.tz ? dayjs.tz(new Date()).format() : dayjs().format();
+
+    const msgString = msg
+        .map((m) => {
+            if (typeof m === "string") {
+                return m;
+            } else {
+                try {
+                    return JSON.stringify(m);
+                } catch {
+                    return String(m);
+                }
+            }
+        })
+        .join(" ");
+
+    return `${now} [${module.toUpperCase()}] ${level.toUpperCase()}: ${msgString}`;
+}
+
+/**
+ * Append a pre-formatted, plain-text log line to the persistent log file,
+ * rotating first if it has grown too large. Runs independently of console
+ * suppression rules (e.g. debug logs are hidden from console in production
+ * but still persisted here). Failures here are swallowed - logging must
+ * never be able to crash the app.
+ * @param line Plain-text log line (no ANSI color codes), without trailing newline
+ * @returns {void}
+ */
+function appendToLogFile(line: string): void {
+    try {
+        const fs = require("fs");
+        const path = require("path");
+        const dir = getLogDir();
+
+        if (!logDirEnsured) {
+            fs.mkdirSync(dir, { recursive: true });
+            logDirEnsured = true;
+        }
+
+        const filePath = path.join(dir, "app.log");
+
+        let size = 0;
+        try {
+            size = fs.statSync(filePath).size;
+        } catch {
+            // File doesn't exist yet, treat as empty
+        }
+
+        if (size >= LOG_MAX_SIZE_BYTES) {
+            rotateLogFile(dir, filePath);
+        }
+
+        fs.appendFileSync(filePath, line + "\n");
+    } catch {
+        // Never let a logging failure break the app itself
+    }
+}
+
 class Logger {
     /**
      * ZMONITOR_HIDE_LOG=debug_monitor,info_monitor
@@ -256,11 +372,18 @@ class Logger {
      * @returns {void}
      */
     log(module: string, level: LogLevel, ...msg: unknown[]) {
-        if (level === "debug" && !isDev) {
+        if (this.hideLog[level] && this.hideLog[level].includes(module.toLowerCase())) {
             return;
         }
 
-        if (this.hideLog[level] && this.hideLog[level].includes(module.toLowerCase())) {
+        // Persist to file regardless of console-level suppression below, so
+        // e.g. monitor check activity (debug-level, hidden from console in
+        // production) is still available to review without shell access.
+        if (isNode) {
+            appendToLogFile(formatLogFileLine(module, level, msg));
+        }
+
+        if (level === "debug" && !isDev) {
             return;
         }
 

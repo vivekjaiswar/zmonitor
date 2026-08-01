@@ -34,6 +34,7 @@ import Proxies from "./components/settings/Proxies.vue";
 import About from "./components/settings/About.vue";
 import RemoteBrowsers from "./components/settings/RemoteBrowsers.vue";
 import Users from "./components/settings/Users.vue";
+import Logs from "./components/settings/Logs.vue";
 
 const routes = [
     {
@@ -117,6 +118,10 @@ const routes = [
                             {
                                 path: "users",
                                 component: Users,
+                            },
+                            {
+                                path: "logs",
+                                component: Logs,
                             },
                             {
                                 path: "monitor-history",
