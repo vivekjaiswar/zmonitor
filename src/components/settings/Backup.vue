@@ -5,11 +5,51 @@
             {{ $t("backupDescription") }}
             {{ $t("backupDescription2") }}
         </p>
-        <button class="btn btn-primary" @click="exportBackup">
+        <button class="btn btn-primary me-2" @click="exportBackup">
             {{ $t("Export Backup") }}
+        </button>
+        <button class="btn btn-normal" @click="exportCsv">
+            {{ $t("Export CSV") }}
         </button>
         <p class="form-text mt-2">
             <strong>{{ $t("backupDescription3") }}</strong>
+        </p>
+
+        <h5 class="mt-5 mb-3">{{ $t("Import Monitors from CSV") }}</h5>
+        <p class="form-text">
+            {{ $t("importCsvDescription") }}
+        </p>
+
+        <div class="mb-3">
+            <label for="csv-monitor-type" class="form-label">{{ $t("Monitor Type") }}</label>
+            <select id="csv-monitor-type" v-model="csvMonitorType" class="form-select">
+                <option value="ping">Ping</option>
+                <option value="port">TCP Port</option>
+                <option value="http">HTTP(s)</option>
+            </select>
+        </div>
+
+        <div v-if="csvMonitorType === 'port'" class="mb-3">
+            <label for="csv-port" class="form-label">{{ $t("Port") }}</label>
+            <input id="csv-port" v-model.number="csvPort" type="number" class="form-control" min="1" max="65535" />
+        </div>
+
+        <div class="mb-3">
+            <input
+                ref="csvFileInput"
+                class="form-control"
+                type="file"
+                accept=".csv,text/csv"
+                @change="onCsvFileChange"
+            />
+        </div>
+
+        <button class="btn btn-primary" :disabled="!csvSelectedFile || csvImporting" @click="importCsv">
+            {{ $t("Import CSV") }}
+        </button>
+
+        <p v-if="csvImporting" class="form-text mt-2">
+            {{ $t("csvImportProgress", { done: csvImportDone, total: csvImportTotal }) }}
         </p>
 
         <h5 class="mt-5 mb-3">{{ $t("Import Backup") }}</h5>
@@ -70,6 +110,73 @@
 <script>
 import Confirm from "../../components/Confirm.vue";
 
+/**
+ * Escape a value for inclusion in a CSV cell (RFC4180-ish): wrap in quotes
+ * and double up any embedded quotes if the value contains a comma, quote,
+ * or newline.
+ * @param {*} value Value to escape
+ * @returns {string} CSV-safe cell content
+ */
+function csvEscape(value) {
+    const str = String(value ?? "");
+    if (/["\n,]/.test(str)) {
+        return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+}
+
+/**
+ * Minimal RFC4180-ish CSV parser: handles quoted fields with embedded
+ * commas/newlines/escaped quotes, and both \n and \r\n line endings.
+ * @param {string} text Raw CSV file content
+ * @returns {Array<Array<string>>} Rows of cell values
+ */
+function parseCsv(text) {
+    const rows = [];
+    let row = [];
+    let cell = "";
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+
+        if (inQuotes) {
+            if (char === '"') {
+                if (text[i + 1] === '"') {
+                    cell += '"';
+                    i++;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                cell += char;
+            }
+        } else if (char === '"') {
+            inQuotes = true;
+        } else if (char === ",") {
+            row.push(cell);
+            cell = "";
+        } else if (char === "\n" || char === "\r") {
+            if (char === "\r" && text[i + 1] === "\n") {
+                i++;
+            }
+            row.push(cell);
+            rows.push(row);
+            row = [];
+            cell = "";
+        } else {
+            cell += char;
+        }
+    }
+
+    if (cell !== "" || row.length > 0) {
+        row.push(cell);
+        rows.push(row);
+    }
+
+    return rows.filter((r) => !(r.length === 1 && r[0] === ""));
+}
+
 export default {
     components: {
         Confirm,
@@ -80,10 +187,220 @@ export default {
             importHandle: "skip",
             selectedFile: null,
             importing: false,
+
+            csvMonitorType: "ping",
+            csvPort: 80,
+            csvSelectedFile: null,
+            csvImporting: false,
+            csvImportDone: 0,
+            csvImportTotal: 0,
         };
     },
 
     methods: {
+        /**
+         * Build a CSV file (sr_no, name, description, ip_address, location)
+         * from the currently loaded monitor list and trigger a browser download.
+         * @returns {void}
+         */
+        exportCsv() {
+            const header = ["sr_no", "name", "description", "ip_address", "location"];
+            const monitors = Object.values(this.$root.monitorList || {});
+
+            const rows = monitors.map((monitor, index) => [
+                index + 1,
+                monitor.name || "",
+                monitor.description || "",
+                monitor.hostname || "",
+                (monitor.tags && monitor.tags[0] && monitor.tags[0].name) || "",
+            ]);
+
+            const csv = [header, ...rows].map((row) => row.map(csvEscape).join(",")).join("\r\n");
+
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const date = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `zmonitor-monitors-${date}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        },
+
+        /**
+         * Track the selected CSV file for import
+         * @param {Event} event Change event from the file input
+         * @returns {void}
+         */
+        onCsvFileChange(event) {
+            this.csvSelectedFile = event.target.files[0] || null;
+        },
+
+        /**
+         * Parse the selected CSV file and create one monitor per row, tagging
+         * each with its location (creating the tag if it doesn't exist yet).
+         * @returns {void}
+         */
+        importCsv() {
+            if (!this.csvSelectedFile) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const rows = parseCsv(reader.result);
+                if (rows.length === 0) {
+                    this.$root.toastError(this.$t("csvEmptyFile"));
+                    return;
+                }
+
+                // First row is the header; map remaining rows by column name.
+                const header = rows[0].map((col) => col.trim().toLowerCase());
+                const nameIdx = header.indexOf("name");
+                const descIdx = header.indexOf("description");
+                const ipIdx = header.indexOf("ip_address");
+                const locationIdx = header.indexOf("location");
+
+                if (nameIdx === -1 || ipIdx === -1) {
+                    this.$root.toastError(this.$t("csvMissingColumns"));
+                    return;
+                }
+
+                const dataRows = rows.slice(1).filter((row) => row.some((cell) => cell.trim() !== ""));
+
+                this.csvImporting = true;
+                this.csvImportDone = 0;
+                this.csvImportTotal = dataRows.length;
+
+                const tagIDByLocation = {};
+                let failed = 0;
+
+                for (const row of dataRows) {
+                    const name = row[nameIdx]?.trim() || "";
+                    const description = descIdx !== -1 ? row[descIdx]?.trim() || "" : "";
+                    const ipAddress = row[ipIdx]?.trim() || "";
+                    const location = locationIdx !== -1 ? row[locationIdx]?.trim() || "" : "";
+
+                    const monitorPayload = this.buildMonitorPayload(name, description, ipAddress);
+                    const addRes = await this.addMonitorAsync(monitorPayload);
+
+                    if (!addRes.ok) {
+                        failed++;
+                    } else if (location) {
+                        const tagID = await this.resolveTagID(location, tagIDByLocation);
+                        if (tagID) {
+                            await this.addMonitorTagAsync(tagID, addRes.monitorID);
+                        }
+                    }
+
+                    this.csvImportDone++;
+                }
+
+                this.csvImporting = false;
+                this.csvSelectedFile = null;
+                this.$refs.csvFileInput.value = "";
+                this.$root.getMonitorList();
+
+                if (failed === 0) {
+                    this.$root.toastSuccess(this.$t("csvImportSuccess", { count: dataRows.length }));
+                } else {
+                    this.$root.toastError(this.$t("csvImportPartialFailure", { failed, total: dataRows.length }));
+                }
+            };
+            reader.onerror = () => {
+                this.$root.toastError(this.$t("Failed to read the file."));
+            };
+            reader.readAsText(this.csvSelectedFile);
+        },
+
+        /**
+         * Build the minimal monitor payload for the selected CSV import type
+         * @param {string} name Monitor name
+         * @param {string} description Monitor description
+         * @param {string} ipAddress Host/IP to check
+         * @returns {object} Payload for the "add" socket event
+         */
+        buildMonitorPayload(name, description, ipAddress) {
+            const base = {
+                name,
+                description,
+                interval: 60,
+                retryInterval: 60,
+                resendInterval: 0,
+                maxretries: 0,
+                notificationIDList: {},
+                accepted_statuscodes: ["200-299"],
+                conditions: [],
+            };
+
+            if (this.csvMonitorType === "http") {
+                return { ...base, type: "http", url: `http://${ipAddress}` };
+            }
+
+            if (this.csvMonitorType === "port") {
+                return { ...base, type: "port", hostname: ipAddress, port: this.csvPort };
+            }
+
+            return { ...base, type: "ping", hostname: ipAddress };
+        },
+
+        /**
+         * Create a monitor via the "add" socket event
+         * @param {object} payload Monitor payload
+         * @returns {Promise<object>} Server response
+         */
+        addMonitorAsync(payload) {
+            return new Promise((resolve) => {
+                this.$root.getSocket().emit("add", payload, resolve);
+            });
+        },
+
+        /**
+         * Resolve a location name to a tag ID, creating the tag if it doesn't
+         * already exist. Caches results across rows sharing the same location.
+         * @param {string} location Location/tag name
+         * @param {object} cache Map of location name -> tag ID, mutated in place
+         * @returns {Promise<number|null>} Tag ID, or null on failure
+         */
+        async resolveTagID(location, cache) {
+            if (cache[location]) {
+                return cache[location];
+            }
+
+            const existing = await new Promise((resolve) => {
+                this.$root.getSocket().emit("getTags", resolve);
+            });
+            const found = existing.ok && existing.tags.find((tag) => tag.name === location);
+            if (found) {
+                cache[location] = found.id;
+                return found.id;
+            }
+
+            const created = await new Promise((resolve) => {
+                this.$root.getSocket().emit("addTag", { name: location, color: "#4B5563" }, resolve);
+            });
+            if (created.ok) {
+                cache[location] = created.tag.id;
+                return created.tag.id;
+            }
+
+            return null;
+        },
+
+        /**
+         * Apply a tag to a monitor via the "addMonitorTag" socket event
+         * @param {number} tagID Tag ID
+         * @param {number} monitorID Monitor ID
+         * @returns {Promise<object>} Server response
+         */
+        addMonitorTagAsync(tagID, monitorID) {
+            return new Promise((resolve) => {
+                this.$root.getSocket().emit("addMonitorTag", tagID, monitorID, "", resolve);
+            });
+        },
+
         /**
          * Build a backup file from the currently loaded monitors and
          * notifications, and trigger a browser download.
