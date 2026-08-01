@@ -149,6 +149,21 @@ const MONITOR_TABLE_COLUMNS = new Set([
     "protocol", "snmp_v3_username", "expected_tls_alert", "screenshot_delay", "bearer_token", "gamedig_token",
     "ntp_stratum_threshold", "ntp_time_offset_threshold", "ntp_root_dispersion_threshold",
 ]);
+
+// Socket events an "employee" role account is allowed to call. Everything else is
+// rejected by default (fail closed) - a new socket handler added later stays
+// blocked for employee accounts until explicitly added here, rather than being
+// implicitly exposed. Employees are read-only viewers scoped to monitors covered
+// by a tag/monitor grant (see Monitor.getAccessibleMonitorIdsSQL); this list only
+// covers auth/session actions and read-only monitor data.
+const EMPLOYEE_ALLOWED_EVENTS = new Set([
+    "loginByToken", "login", "logout", "verifyToken", "twoFAStatus", "needSetup",
+    "prepare2FA", "save2FA", "disable2FA", "changePassword",
+    "getMonitorList", "getMonitor", "getMonitorBeats", "getMonitorChartData",
+    "monitorImportantHeartbeatListCount", "monitorImportantHeartbeatListPaged",
+    "getTags", "getWebpushVapidPublicKey", "initServerTimezone", "disconnectOtherSocketClients",
+]);
+
 log.debug("server", "Importing Web-Push");
 const webpush = require("web-push");
 
@@ -216,6 +231,7 @@ const { proxySocketHandler } = require("./socket-handlers/proxy-socket-handler")
 const { dockerSocketHandler } = require("./socket-handlers/docker-socket-handler");
 const { maintenanceSocketHandler } = require("./socket-handlers/maintenance-socket-handler");
 const { apiKeySocketHandler } = require("./socket-handlers/api-key-socket-handler");
+const { userSocketHandler } = require("./socket-handlers/user-socket-handler");
 const { generalSocketHandler } = require("./socket-handlers/general-socket-handler");
 const { Settings } = require("./settings");
 const apicache = require("./modules/apicache");
@@ -401,6 +417,29 @@ let needSetup = false;
 
     log.debug("server", "Adding socket handler");
     io.on("connection", async (socket) => {
+        // Fail-closed guard for the "employee" role: wrap every socket.on
+        // registration made on this connection (including the ones registered by
+        // the socket-handlers/*.js files further below, since they all register on
+        // this same socket object) so an employee-role account can only reach the
+        // explicitly allow-listed read-only events.
+        const rawSocketOn = socket.on.bind(socket);
+        socket.on = (event, listener) => {
+            return rawSocketOn(event, async (...args) => {
+                if (socket.userRole === "employee" && !EMPLOYEE_ALLOWED_EVENTS.has(event)) {
+                    log.warn("auth", `Blocked employee user ${socket.userID} from restricted event: ${event}`);
+                    const callback = args[args.length - 1];
+                    if (typeof callback === "function") {
+                        callback({
+                            ok: false,
+                            msg: "You do not have permission to perform this action.",
+                        });
+                    }
+                    return;
+                }
+                return listener(...args);
+            });
+        };
+
         await sendInfo(socket, true);
 
         if (needSetup) {
@@ -549,6 +588,7 @@ let needSetup = false;
 
             socket.leave(socket.userID);
             socket.userID = null;
+            socket.userRole = null;
 
             if (typeof callback === "function") {
                 callback();
@@ -1224,7 +1264,14 @@ let needSetup = false;
 
                 log.info("monitor", `Get Monitor: ${monitorID} User ID: ${socket.userID}`);
 
-                let monitor = await R.findOne("monitor", " id = ? AND user_id = ? ", [monitorID, socket.userID]);
+                const accessible = await Monitor.getAccessibleMonitorIdsSQL(socket.userID);
+                let monitor = await R.findOne("monitor", ` id = ? AND id IN (${accessible.sql}) `, [
+                    monitorID,
+                    ...accessible.params,
+                ]);
+                if (!monitor) {
+                    throw new Error("You do not have access to this monitor.");
+                }
                 const monitorData = [{ id: monitor.id, active: monitor.active }];
                 const preloadData = await Monitor.preparePreloadData(monitorData);
                 callback({
@@ -1268,6 +1315,10 @@ let needSetup = false;
 
                 if (period == null) {
                     throw new Error("Invalid period.");
+                }
+
+                if (!(await Monitor.userCanAccess(socket.userID, monitorID))) {
+                    throw new Error("You do not have access to this monitor.");
                 }
 
                 const sqlHourOffset = Database.sqlHourOffset();
@@ -1594,8 +1645,16 @@ let needSetup = false;
 
                 let count;
                 if (monitorID == null) {
-                    count = await R.count("heartbeat", "important = 1");
+                    const accessible = await Monitor.getAccessibleMonitorIdsSQL(socket.userID);
+                    count = await R.count(
+                        "heartbeat",
+                        `important = 1 AND monitor_id IN (${accessible.sql})`,
+                        accessible.params
+                    );
                 } else {
+                    if (!(await Monitor.userCanAccess(socket.userID, monitorID))) {
+                        throw new Error("You do not have access to this monitor.");
+                    }
                     count = await R.count("heartbeat", "monitor_id = ? AND important = 1", [monitorID]);
                 }
 
@@ -1617,17 +1676,22 @@ let needSetup = false;
 
                 let list;
                 if (monitorID == null) {
+                    const accessible = await Monitor.getAccessibleMonitorIdsSQL(socket.userID);
                     list = await R.find(
                         "heartbeat",
                         `
                         important = 1
+                        AND monitor_id IN (${accessible.sql})
                         ORDER BY time DESC
                         LIMIT ?
                         OFFSET ?
                     `,
-                        [count, offset]
+                        [...accessible.params, count, offset]
                     );
                 } else {
+                    if (!(await Monitor.userCanAccess(socket.userID, monitorID))) {
+                        throw new Error("You do not have access to this monitor.");
+                    }
                     list = await R.find(
                         "heartbeat",
                         `
@@ -1959,6 +2023,7 @@ let needSetup = false;
         dockerSocketHandler(socket);
         maintenanceSocketHandler(socket);
         apiKeySocketHandler(socket);
+        userSocketHandler(socket);
         remoteBrowserSocketHandler(socket);
         generalSocketHandler(socket, server);
         chartSocketHandler(socket);
@@ -2049,6 +2114,7 @@ async function checkOwner(userID, monitorID) {
  */
 async function afterLogin(socket, user) {
     socket.userID = user.id;
+    socket.userRole = user.role || "admin";
     socket.join(user.id);
 
     let monitorList = await server.sendMonitorList(socket);

@@ -648,6 +648,19 @@ exports.checkLogin = (socket) => {
 };
 
 /**
+ * Check if a user is logged in and holds the admin role
+ * @param {Socket} socket Socket instance
+ * @returns {void}
+ * @throws The user is not logged in, or is not an admin
+ */
+exports.checkAdmin = (socket) => {
+    exports.checkLogin(socket);
+    if (socket.userRole === "employee") {
+        throw new Error("You do not have permission to perform this action.");
+    }
+};
+
+/**
  * For logged-in users, double-check the password
  * @param {Socket} socket Socket.io instance
  * @param {string} currentPassword Password to validate

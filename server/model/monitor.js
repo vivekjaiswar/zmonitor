@@ -47,6 +47,7 @@ const { R } = require("redbean-node");
 const { BeanModel } = require("redbean-node/dist/bean-model");
 const { Notification } = require("../notification");
 const { Proxy } = require("../proxy");
+const User = require("./user");
 const { demoMode } = require("../config");
 const version = require("../../package.json").version;
 const apicache = require("../modules/apicache");
@@ -1353,6 +1354,50 @@ class Monitor extends BeanModel {
         const parentActive = await Monitor.isParentActive(monitorID);
 
         return active === 1 && parentActive;
+    }
+
+    /**
+     * Build a WHERE-fragment (and matching params) selecting the IDs of monitors
+     * a given user is allowed to see. Admins see everything they own (today, in
+     * practice, every monitor - there is only ever one owner). Employees only see
+     * monitors covered by an explicit grant or a granted tag.
+     * @param {number} userID ID of the requesting user
+     * @returns {Promise<{sql: string, params: Array}>} subquery SQL and its params
+     */
+    static async getAccessibleMonitorIdsSQL(userID) {
+        const role = await User.getRole(userID);
+
+        if (role === "employee") {
+            return {
+                sql: `
+                    SELECT monitor_id FROM user_monitor_access WHERE user_id = ?
+                    UNION
+                    SELECT mt.monitor_id FROM monitor_tag mt
+                    WHERE mt.tag_id IN (SELECT tag_id FROM user_tag_access WHERE user_id = ?)
+                `,
+                params: [userID, userID],
+            };
+        }
+
+        return {
+            sql: "SELECT id FROM monitor WHERE user_id = ?",
+            params: [userID],
+        };
+    }
+
+    /**
+     * Whether the given user is allowed to view the given monitor
+     * @param {number} userID ID of the requesting user
+     * @param {number} monitorID ID of the monitor
+     * @returns {Promise<boolean>} true if allowed
+     */
+    static async userCanAccess(userID, monitorID) {
+        const { sql, params } = await Monitor.getAccessibleMonitorIdsSQL(userID);
+        const row = await R.getRow(`SELECT id FROM monitor WHERE id = ? AND id IN (${sql})`, [
+            monitorID,
+            ...params,
+        ]);
+        return !!row;
     }
 
     /**

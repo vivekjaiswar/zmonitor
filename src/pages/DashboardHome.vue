@@ -35,7 +35,7 @@
             </div>
 
             <div class="shadow-box table-shadow-box table-wrapper">
-                <div class="mb-3 text-end">
+                <div v-if="$root.isAdmin" class="mb-3 text-end">
                     <button
                         class="btn btn-sm btn-outline-danger"
                         :disabled="clearingAllEvents"

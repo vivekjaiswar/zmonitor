@@ -109,7 +109,7 @@
                 </span>
             </p>
 
-            <div class="functions">
+            <div v-if="$root.isAdmin" class="functions">
                 <div class="btn-group" role="group">
                     <button v-if="monitor.active" class="btn btn-normal" @click="pauseDialog">
                         <font-awesome-icon icon="pause" />
@@ -319,7 +319,7 @@
             </div>
 
             <div class="shadow-box table-shadow-box">
-                <div class="dropdown dropdown-clear-data">
+                <div v-if="$root.isAdmin" class="dropdown dropdown-clear-data">
                     <button
                         class="btn btn-sm btn-outline-danger dropdown-toggle"
                         type="button"

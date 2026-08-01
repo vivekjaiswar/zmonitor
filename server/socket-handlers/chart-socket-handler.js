@@ -1,6 +1,7 @@
 const { checkLogin } = require("../util-server");
 const { UptimeCalculator } = require("../uptime-calculator");
 const { log } = require("../../src/util");
+const Monitor = require("../model/monitor");
 
 module.exports.chartSocketHandler = (socket) => {
     socket.on("getMonitorChartData", async (monitorID, period, callback) => {
@@ -11,6 +12,10 @@ module.exports.chartSocketHandler = (socket) => {
 
             if (period == null) {
                 throw new Error("Invalid period.");
+            }
+
+            if (!(await Monitor.userCanAccess(socket.userID, monitorID))) {
+                throw new Error("You do not have access to this monitor.");
             }
 
             let uptimeCalculator = await UptimeCalculator.getUptimeCalculator(monitorID);

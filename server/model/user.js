@@ -42,10 +42,21 @@ class User extends BeanModel {
         return jwt.sign(
             {
                 username: user.username,
+                role: user.role || "admin",
                 h: shake256(user.password, SHAKE256_LENGTH),
             },
             jwtSecret
         );
+    }
+
+    /**
+     * Get the role of a user, defaulting to "admin" for any pre-RBAC row
+     * @param {number} userID ID of the user
+     * @returns {Promise<string>} "admin" or "employee"
+     */
+    static async getRole(userID) {
+        const role = await R.getCell("SELECT role FROM `user` WHERE id = ?", [userID]);
+        return role || "admin";
     }
 }
 

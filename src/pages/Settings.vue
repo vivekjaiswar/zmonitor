@@ -103,6 +103,9 @@ export default {
                 tags: {
                     title: this.$t("Tags"),
                 },
+                users: {
+                    title: this.$t("Users"),
+                },
                 "monitor-history": {
                     title: this.$t("Monitor History"),
                 },

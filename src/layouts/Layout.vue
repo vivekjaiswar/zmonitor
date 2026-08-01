@@ -83,7 +83,7 @@
                                 </router-link>
                             </li>
 
-                            <li>
+                            <li v-if="$root.isAdmin">
                                 <router-link
                                     to="/settings/general"
                                     class="dropdown-item"
@@ -139,12 +139,12 @@
                 {{ $t("List") }}
             </router-link>
 
-            <router-link to="/add" class="nav-link">
+            <router-link v-if="$root.isAdmin" to="/add" class="nav-link">
                 <div><font-awesome-icon icon="plus" /></div>
                 {{ $t("Add") }}
             </router-link>
 
-            <router-link to="/settings" class="nav-link">
+            <router-link v-if="$root.isAdmin" to="/settings" class="nav-link">
                 <div><font-awesome-icon icon="cog" /></div>
                 {{ $t("Settings") }}
             </router-link>

@@ -38,6 +38,7 @@ export default {
                 initedSocketIO: false,
             },
             username: null,
+            role: null,
             remember: localStorage.remember !== "0",
             allowLoginDialog: false, // Allowed to show login dialog, but "loggedIn" have to be true too. This exists because prevent the login dialog show 0.1s in first before the socket server auth-ed.
             loggedIn: false,
@@ -428,6 +429,7 @@ export default {
                         this.socket.token = res.token;
                         this.loggedIn = true;
                         this.username = this.getJWTPayload()?.username;
+                        this.role = this.getJWTPayload()?.role;
 
                         // Trigger Chrome Save Password
                         history.pushState({}, "");
@@ -452,6 +454,7 @@ export default {
                 } else {
                     this.loggedIn = true;
                     this.username = this.getJWTPayload()?.username;
+                    this.role = this.getJWTPayload()?.role;
                 }
             });
         },
@@ -466,6 +469,7 @@ export default {
             this.socket.token = null;
             this.loggedIn = false;
             this.username = null;
+            this.role = null;
             this.clearData();
         },
 
@@ -734,6 +738,10 @@ export default {
     },
 
     computed: {
+        isAdmin() {
+            return this.role !== "employee";
+        },
+
         usernameFirstChar() {
             if (typeof this.username == "string" && this.username.length >= 1) {
                 return this.username.charAt(0).toUpperCase();

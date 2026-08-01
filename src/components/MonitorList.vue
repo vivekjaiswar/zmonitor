@@ -19,21 +19,23 @@
                 </div>
 
                 <div class="filters-group">
-                    <input
-                        v-if="!selectMode"
-                        v-model="selectMode"
-                        class="form-check-input"
-                        type="checkbox"
-                        :aria-label="$t('selectAllMonitorsAria')"
-                        @change="selectAll = selectMode"
-                    />
-                    <input
-                        v-else
-                        v-model="selectAll"
-                        class="form-check-input"
-                        type="checkbox"
-                        :aria-label="selectAll ? $t('deselectAllMonitorsAria') : $t('selectAllMonitorsAria')"
-                    />
+                    <template v-if="$root.isAdmin">
+                        <input
+                            v-if="!selectMode"
+                            v-model="selectMode"
+                            class="form-check-input"
+                            type="checkbox"
+                            :aria-label="$t('selectAllMonitorsAria')"
+                            @change="selectAll = selectMode"
+                        />
+                        <input
+                            v-else
+                            v-model="selectAll"
+                            class="form-check-input"
+                            type="checkbox"
+                            :aria-label="selectAll ? $t('deselectAllMonitorsAria') : $t('selectAllMonitorsAria')"
+                        />
+                    </template>
 
                     <MonitorListFilter
                         :filterState="filterState"
@@ -76,6 +78,12 @@
                                 </a>
                             </li>
                             <li>
+                                <a class="dropdown-item" href="#" @click.prevent="$refs.bulkTagDialog.show()">
+                                    <font-awesome-icon icon="tag" class="me-2" />
+                                    {{ $t("Apply Tag") }}
+                                </a>
+                            </li>
+                            <li>
                                 <a
                                     class="dropdown-item text-danger"
                                     href="#"
@@ -101,8 +109,13 @@
             data-testid="monitor-list"
         >
             <div v-if="Object.keys($root.monitorList).length === 0" class="text-center mt-3">
-                {{ $t("No Monitors, please") }}
-                <router-link to="/add">{{ $t("add one") }}</router-link>
+                <template v-if="$root.isAdmin">
+                    {{ $t("No Monitors, please") }}
+                    <router-link to="/add">{{ $t("add one") }}</router-link>
+                </template>
+                <template v-else>
+                    {{ $t("noMonitorsAssigned") }}
+                </template>
             </div>
 
             <MonitorListItem
@@ -126,12 +139,15 @@
     <Confirm ref="confirmDelete" btn-style="btn-danger" :yes-text="$t('Yes')" :no-text="$t('No')" @yes="deleteSelected">
         {{ $t("deleteMonitorsMsg") }}
     </Confirm>
+
+    <BulkTagDialog ref="bulkTagDialog" @apply="applyTagToSelected" />
 </template>
 
 <script>
 import Confirm from "../components/Confirm.vue";
 import MonitorListItem from "../components/MonitorListItem.vue";
 import MonitorListFilter from "./MonitorListFilter.vue";
+import BulkTagDialog from "../components/BulkTagDialog.vue";
 import { getMonitorRelativeURL } from "../util.ts";
 
 export default {
@@ -139,6 +155,7 @@ export default {
         Confirm,
         MonitorListItem,
         MonitorListFilter,
+        BulkTagDialog,
     },
     props: {
         /** Should the scrollbar be shown */
@@ -522,6 +539,48 @@ export default {
             }
             if (errorCount > 0) {
                 this.$root.toastError(this.$t("bulkDeleteErrorMsg", errorCount));
+            }
+
+            this.cancelSelectMode();
+        },
+        /**
+         * Apply a tag to every selected monitor that doesn't already carry it
+         * @param {number} tagID ID of the tag to apply
+         * @returns {Promise<void>}
+         */
+        async applyTagToSelected(tagID) {
+            if (this.bulkActionInProgress) {
+                return;
+            }
+
+            const monitorIds = Object.keys(this.selectedMonitors).filter((id) => {
+                const monitor = this.$root.monitorList[id];
+                return !monitor?.tags?.some((tag) => tag.tag_id === tagID);
+            });
+
+            if (monitorIds.length === 0) {
+                this.$root.toastError(this.$t("allSelectedAlreadyTaggedMsg"));
+                return;
+            }
+
+            this.bulkActionInProgress = true;
+            let successCount = 0;
+
+            for (const id of monitorIds) {
+                await new Promise((resolve) => {
+                    this.$root.getSocket().emit("addMonitorTag", tagID, id, "", (res) => {
+                        if (res.ok) {
+                            successCount++;
+                        }
+                        resolve();
+                    });
+                });
+            }
+
+            this.bulkActionInProgress = false;
+
+            if (successCount > 0) {
+                this.$root.toastSuccess(this.$t("appliedTagMsg", successCount));
             }
 
             this.cancelSelectMode();
