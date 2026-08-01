@@ -95,7 +95,12 @@
                             </li>
 
                             <li>
-                                <a href="mailto:info@zennialhub.in" class="dropdown-item">
+                                <a
+                                    href="https://github.com/vivekjaiswar/zmonitor"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="dropdown-item"
+                                >
                                     <font-awesome-icon icon="info-circle" />
                                     {{ $t("Help") }}
                                 </a>

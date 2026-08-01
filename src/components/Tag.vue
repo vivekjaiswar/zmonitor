@@ -8,7 +8,7 @@
             'px-2': size == 'sm',
             'py-0': size == 'sm',
         }"
-        :style="{ backgroundColor: item.color, fontSize: size == 'sm' ? '0.7em' : '1em' }"
+        :style="{ backgroundColor: item.color, color: textColor, fontSize: size == 'sm' ? '0.7em' : '1em' }"
     >
         <span class="tag-text">{{ displayText }}</span>
         <span v-if="remove != null" class="ps-1 btn-remove" @click="remove(item)">
@@ -54,13 +54,29 @@ export default {
                 return `${this.item.name}: ${this.item.value}`;
             }
         },
+
+        /**
+         * Picks black or white text so the tag label stays readable
+         * regardless of how light or dark the tag's background color is.
+         * @returns {string} "#000000" or "#ffffff"
+         */
+        textColor() {
+            const hex = (this.item.color || "").replace("#", "");
+            if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+                return "#ffffff";
+            }
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.6 ? "#000000" : "#ffffff";
+        },
     },
 };
 </script>
 
 <style lang="scss" scoped>
 .tag-wrapper {
-    color: white;
     opacity: 0.85;
 
     .dark & {
