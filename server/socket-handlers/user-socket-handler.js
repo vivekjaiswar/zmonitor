@@ -23,8 +23,26 @@ async function setUserTagAccess(userID, tagIDs) {
 }
 
 /**
- * Handlers for admin management of employee user accounts and their tag-scoped
- * monitor visibility.
+ * Replace an employee's direct per-monitor access grants with the given list
+ * of monitor IDs
+ * @param {number} userID ID of the employee user
+ * @param {Array<number>} monitorIDs Monitor IDs to grant access to
+ * @returns {Promise<void>}
+ */
+async function setUserMonitorAccess(userID, monitorIDs) {
+    await R.exec("DELETE FROM user_monitor_access WHERE user_id = ?", [userID]);
+
+    for (const monitorID of monitorIDs) {
+        let grant = R.dispense("user_monitor_access");
+        grant.user_id = userID;
+        grant.monitor_id = monitorID;
+        await R.store(grant);
+    }
+}
+
+/**
+ * Handlers for admin management of employee user accounts and their
+ * Location-scoped and/or directly-granted monitor visibility.
  * @param {Socket} socket Socket.io instance
  * @returns {void}
  */
@@ -34,14 +52,18 @@ module.exports.userSocketHandler = (socket) => {
             checkAdmin(socket);
 
             const users = await R.getAll("SELECT id, username, active, role FROM `user` ORDER BY username");
-            const grants = await R.getAll("SELECT user_id, tag_id FROM user_tag_access");
+            const tagGrants = await R.getAll("SELECT user_id, tag_id FROM user_tag_access");
+            const monitorGrants = await R.getAll("SELECT user_id, monitor_id FROM user_monitor_access");
 
             const result = users.map((user) => ({
                 id: user.id,
                 username: user.username,
                 active: !!user.active,
                 role: user.role || "admin",
-                tagIDs: grants.filter((grant) => grant.user_id === user.id).map((grant) => grant.tag_id),
+                tagIDs: tagGrants.filter((grant) => grant.user_id === user.id).map((grant) => grant.tag_id),
+                monitorIDs: monitorGrants
+                    .filter((grant) => grant.user_id === user.id)
+                    .map((grant) => grant.monitor_id),
             }));
 
             callback({
@@ -83,6 +105,10 @@ module.exports.userSocketHandler = (socket) => {
 
             if (Array.isArray(data.tagIDs) && data.tagIDs.length > 0) {
                 await setUserTagAccess(bean.id, data.tagIDs);
+            }
+
+            if (Array.isArray(data.monitorIDs) && data.monitorIDs.length > 0) {
+                await setUserMonitorAccess(bean.id, data.monitorIDs);
             }
 
             log.info("auth", `Admin ${socket.userID} created employee account ${username} (id ${bean.id})`);
@@ -130,6 +156,10 @@ module.exports.userSocketHandler = (socket) => {
 
             if (Array.isArray(data.tagIDs)) {
                 await setUserTagAccess(bean.id, data.tagIDs);
+            }
+
+            if (Array.isArray(data.monitorIDs)) {
+                await setUserMonitorAccess(bean.id, data.monitorIDs);
             }
 
             callback({

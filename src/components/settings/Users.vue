@@ -28,8 +28,11 @@
                             :item="tagDisplayItem(tagID)"
                             size="sm"
                         />
-                        <span v-if="user.tagIDs.length === 0" class="form-text">
+                        <span v-if="user.tagIDs.length === 0 && user.monitorIDs.length === 0" class="form-text">
                             {{ $t("noTagAccessGranted") }}
+                        </span>
+                        <span v-if="user.monitorIDs.length > 0" class="form-text individual-monitors-badge">
+                            {{ $t("individualMonitorsGrantedCount", user.monitorIDs.length) }}
                         </span>
                     </div>
                 </div>
@@ -207,6 +210,10 @@ export default {
 
             .tags {
                 margin-top: 4px;
+
+                .individual-monitors-badge {
+                    margin-left: 6px;
+                }
             }
         }
     }

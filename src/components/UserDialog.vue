@@ -67,6 +67,13 @@
                                 </label>
                             </div>
                         </div>
+
+                        <div class="mb-1 mt-3">
+                            <label class="form-label">{{ $t("employeeMonitorAccess") }}</label>
+                            <div class="form-text mb-2">{{ $t("employeeMonitorAccessDesc") }}</div>
+
+                            <MonitorMultiSelect v-model="user.monitorIDs" />
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-primary" type="submit" :disabled="processing">
@@ -82,10 +89,12 @@
 <script>
 import { Modal } from "bootstrap";
 import Tag from "./Tag.vue";
+import MonitorMultiSelect from "./MonitorMultiSelect.vue";
 
 export default {
     components: {
         Tag,
+        MonitorMultiSelect,
     },
 
     emits: ["added", "edited"],
@@ -101,6 +110,7 @@ export default {
                 password: "",
                 active: true,
                 tagIDs: [],
+                monitorIDs: [],
             },
             tagList: [],
         };
@@ -123,6 +133,7 @@ export default {
                 password: "",
                 active: true,
                 tagIDs: [],
+                monitorIDs: [],
             };
             this.loadTags();
             this.modal.show();
@@ -141,6 +152,7 @@ export default {
                 password: "",
                 active: existingUser.active,
                 tagIDs: [...existingUser.tagIDs],
+                monitorIDs: [...existingUser.monitorIDs],
             };
             this.loadTags();
             this.modal.show();
