@@ -2118,6 +2118,36 @@
                                 <div class="form-text">{{ $t("descriptionHelpText") }}</div>
                             </div>
 
+                            <!-- Map coordinates -->
+                            <div class="my-3">
+                                <label class="form-label">{{ $t("mapCoordinates") }}</label>
+                                <div class="row">
+                                    <div class="col">
+                                        <input
+                                            v-model.number="monitor.lat"
+                                            type="number"
+                                            step="any"
+                                            min="-90"
+                                            max="90"
+                                            class="form-control"
+                                            :placeholder="$t('Latitude')"
+                                        />
+                                    </div>
+                                    <div class="col">
+                                        <input
+                                            v-model.number="monitor.lng"
+                                            type="number"
+                                            step="any"
+                                            min="-180"
+                                            max="180"
+                                            class="form-control"
+                                            :placeholder="$t('Longitude')"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="form-text">{{ $t("mapCoordinatesHelpText") }}</div>
+                            </div>
+
                             <div class="my-3">
                                 <tags-manager ref="tagsManager" :pre-selected-tags="monitor.tags"></tags-manager>
                             </div>
@@ -3199,6 +3229,8 @@ const monitorDefaults = {
     type: "http",
     name: "",
     parent: null,
+    lat: null,
+    lng: null,
     url: defaultValueList.http.url,
     wsSubprotocol: "",
     method: "GET",

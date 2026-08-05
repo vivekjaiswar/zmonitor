@@ -1128,6 +1128,8 @@ let needSetup = false;
 
                 bean.name = monitor.name;
                 bean.description = monitor.description;
+                bean.lat = monitor.lat === null || monitor.lat === undefined ? null : Number(monitor.lat);
+                bean.lng = monitor.lng === null || monitor.lng === undefined ? null : Number(monitor.lng);
                 bean.parent = monitor.parent;
                 bean.type = monitor.type;
                 bean.subtype = monitor.subtype;

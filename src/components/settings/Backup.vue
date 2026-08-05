@@ -241,7 +241,7 @@ export default {
          * @returns {void}
          */
         exportCsv() {
-            const header = ["sr_no", "name", "description", "ip_address", "location"];
+            const header = ["sr_no", "name", "description", "ip_address", "location", "lat", "lng"];
             const monitors = Object.values(this.$root.monitorList || {});
 
             const rows = monitors.map((monitor, index) => [
@@ -250,6 +250,8 @@ export default {
                 monitor.description || "",
                 monitor.hostname || "",
                 (monitor.tags && monitor.tags[0] && monitor.tags[0].name) || "",
+                monitor.lat ?? "",
+                monitor.lng ?? "",
             ]);
 
             const csv = [header, ...rows].map((row) => row.map(csvEscape).join(",")).join("\r\n");
@@ -299,6 +301,8 @@ export default {
                 const descIdx = header.indexOf("description");
                 const ipIdx = header.indexOf("ip_address");
                 const locationIdx = header.indexOf("location");
+                const latIdx = header.indexOf("lat");
+                const lngIdx = header.indexOf("lng");
 
                 if (nameIdx === -1 || ipIdx === -1) {
                     this.$root.toastError(this.$t("csvMissingColumns"));
@@ -319,8 +323,14 @@ export default {
                     const description = descIdx !== -1 ? row[descIdx]?.trim() || "" : "";
                     const ipAddress = row[ipIdx]?.trim() || "";
                     const location = locationIdx !== -1 ? row[locationIdx]?.trim() || "" : "";
+                    const lat = latIdx !== -1 && row[latIdx]?.trim() ? parseFloat(row[latIdx]) : null;
+                    const lng = lngIdx !== -1 && row[lngIdx]?.trim() ? parseFloat(row[lngIdx]) : null;
 
                     const monitorPayload = this.buildMonitorPayload(name, description, ipAddress);
+                    if (!Number.isNaN(lat) && !Number.isNaN(lng) && lat !== null && lng !== null) {
+                        monitorPayload.lat = lat;
+                        monitorPayload.lng = lng;
+                    }
                     const addRes = await this.addMonitorAsync(monitorPayload);
 
                     if (!addRes.ok) {
