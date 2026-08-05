@@ -63,6 +63,12 @@
                         {{ $t("Dashboard") }}
                     </router-link>
                 </li>
+                <li v-if="$root.loggedIn" class="nav-item me-2">
+                    <router-link to="/map" class="nav-link">
+                        <font-awesome-icon icon="map-marker-alt" />
+                        {{ $t("Network Map") }}
+                    </router-link>
+                </li>
                 <li v-if="$root.loggedIn" class="nav-item">
                     <div class="dropdown dropdown-profile-pic">
                         <div class="nav-link" data-bs-toggle="dropdown">
@@ -160,6 +166,11 @@
             <router-link to="/list" class="nav-link">
                 <div><font-awesome-icon icon="list" /></div>
                 {{ $t("List") }}
+            </router-link>
+
+            <router-link to="/map" class="nav-link">
+                <div><font-awesome-icon icon="map-marker-alt" /></div>
+                {{ $t("Network Map") }}
             </router-link>
 
             <router-link v-if="$root.isAdmin" to="/add" class="nav-link">

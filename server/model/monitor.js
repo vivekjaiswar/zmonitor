@@ -140,6 +140,8 @@ class Monitor extends BeanModel {
             hostname: this.hostname,
             port: this.port,
             location: this.location,
+            lat: this.lat,
+            lng: this.lng,
             protocol: this.protocol,
             maxretries: this.maxretries,
             weight: this.weight,

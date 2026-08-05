@@ -110,6 +110,7 @@ const {
     setting,
     initJWTSecret,
     checkLogin,
+    checkAdmin,
     doubleCheckPassword,
     shake256,
     SHAKE256_LENGTH,
@@ -149,7 +150,7 @@ const MONITOR_TABLE_COLUMNS = new Set([
     "ping_per_request_timeout", "ip_family", "oauth_audience", "mqtt_websocket_path", "domain_expiry_notification",
     "save_response", "save_error_response", "response_max_length", "system_service_name", "subtype", "location",
     "protocol", "snmp_v3_username", "expected_tls_alert", "screenshot_delay", "bearer_token", "gamedig_token",
-    "ntp_stratum_threshold", "ntp_time_offset_threshold", "ntp_root_dispersion_threshold",
+    "ntp_stratum_threshold", "ntp_time_offset_threshold", "ntp_root_dispersion_threshold", "lat", "lng",
 ]);
 
 // Socket events an "employee" role account is allowed to call. Everything else is
@@ -1066,6 +1067,32 @@ let needSetup = false;
                     ok: false,
                     msg: e.message,
                 });
+            }
+        });
+
+        // Set lat/lng on an existing monitor (map/CSV-import path). Deliberately
+        // separate from editMonitor, which requires a full monitor payload and
+        // would overwrite every other field with whatever the caller happens to
+        // send - a bulk CSV row only knows lat/lng, not the monitor's full config.
+        socket.on("setMonitorLatLng", async (data, callback) => {
+            try {
+                checkAdmin(socket);
+
+                const bean = await R.findOne("monitor", " id = ? ", [data.id]);
+                if (!bean) {
+                    throw new Error("Monitor not found");
+                }
+                if (bean.user_id !== socket.userID) {
+                    throw new Error("Permission denied.");
+                }
+
+                bean.lat = data.lat === null || data.lat === undefined ? null : Number(data.lat);
+                bean.lng = data.lng === null || data.lng === undefined ? null : Number(data.lng);
+                await R.store(bean);
+
+                callback({ ok: true });
+            } catch (e) {
+                callback({ ok: false, msg: e.message });
             }
         });
 

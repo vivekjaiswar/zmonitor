@@ -8,6 +8,7 @@ import Details from "./pages/Details.vue";
 import EditMonitor from "./pages/EditMonitor.vue";
 import EditMaintenance from "./pages/EditMaintenance.vue";
 import List from "./pages/List.vue";
+const NetworkMap = () => import("./pages/NetworkMap.vue");
 const Settings = () => import("./pages/Settings.vue");
 import Setup from "./pages/Setup.vue";
 import StatusPage from "./pages/StatusPage.vue";
@@ -86,6 +87,10 @@ const routes = [
                     {
                         path: "/list",
                         component: List,
+                    },
+                    {
+                        path: "/map",
+                        component: NetworkMap,
                     },
                     {
                         path: "/settings",

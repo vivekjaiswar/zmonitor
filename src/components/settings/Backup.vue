@@ -52,6 +52,36 @@
             {{ $t("csvImportProgress", { done: csvImportDone, total: csvImportTotal }) }}
         </p>
 
+        <h5 class="mt-5 mb-3">{{ $t("Import Coordinates from CSV") }}</h5>
+        <p class="form-text">
+            {{ $t("importCoordsCsvDescription") }}
+        </p>
+
+        <div class="mb-3">
+            <input
+                ref="coordsCsvFileInput"
+                class="form-control"
+                type="file"
+                accept=".csv,text/csv"
+                @change="onCoordsCsvFileChange"
+            />
+        </div>
+
+        <button class="btn btn-primary" :disabled="!coordsCsvSelectedFile || coordsCsvImporting" @click="importCoordsCsv">
+            {{ $t("Import Coordinates") }}
+        </button>
+
+        <p v-if="coordsCsvImporting" class="form-text mt-2">
+            {{ $t("csvImportProgress", { done: coordsCsvImportDone, total: coordsCsvImportTotal }) }}
+        </p>
+
+        <div v-if="coordsCsvSkipped.length" class="form-text mt-2 text-warning">
+            <strong>{{ $t("coordsCsvSkippedTitle", { count: coordsCsvSkipped.length }) }}</strong>
+            <ul class="mb-0">
+                <li v-for="(row, i) in coordsCsvSkipped" :key="i">{{ row }}</li>
+            </ul>
+        </div>
+
         <h5 class="mt-5 mb-3">{{ $t("Import Backup") }}</h5>
         <p class="form-text">
             {{ $t("importBackupDescription") }}
@@ -109,6 +139,7 @@
 
 <script>
 import Confirm from "../../components/Confirm.vue";
+import { findMonitorMatch } from "../../util-csv-match";
 
 /**
  * Escape a value for inclusion in a CSV cell (RFC4180-ish): wrap in quotes
@@ -194,6 +225,12 @@ export default {
             csvImporting: false,
             csvImportDone: 0,
             csvImportTotal: 0,
+
+            coordsCsvSelectedFile: null,
+            coordsCsvImporting: false,
+            coordsCsvImportDone: 0,
+            coordsCsvImportTotal: 0,
+            coordsCsvSkipped: [],
         };
     },
 
@@ -313,6 +350,107 @@ export default {
                 this.$root.toastError(this.$t("Failed to read the file."));
             };
             reader.readAsText(this.csvSelectedFile);
+        },
+
+        /**
+         * Track the selected coordinates CSV file for import
+         * @param {Event} event Change event from the file input
+         * @returns {void}
+         */
+        onCoordsCsvFileChange(event) {
+            this.coordsCsvSelectedFile = event.target.files[0] || null;
+        },
+
+        /**
+         * Parse the selected CSV file (name/hostname + lat + lng columns) and
+         * set coordinates on existing monitors by matching each row. Insert-only
+         * "Import Monitors from CSV" above is a separate flow - this one only
+         * ever updates monitors that already exist.
+         * @returns {void}
+         */
+        importCoordsCsv() {
+            if (!this.coordsCsvSelectedFile) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const rows = parseCsv(reader.result);
+                if (rows.length === 0) {
+                    this.$root.toastError(this.$t("csvEmptyFile"));
+                    return;
+                }
+
+                const header = rows[0].map((col) => col.trim().toLowerCase());
+                const nameIdx = header.indexOf("name");
+                const hostnameIdx = header.indexOf("hostname");
+                const latIdx = header.indexOf("lat");
+                const lngIdx = header.indexOf("lng");
+
+                if (latIdx === -1 || lngIdx === -1 || (nameIdx === -1 && hostnameIdx === -1)) {
+                    this.$root.toastError(this.$t("coordsCsvMissingColumns"));
+                    return;
+                }
+
+                const dataRows = rows.slice(1).filter((row) => row.some((cell) => cell.trim() !== ""));
+
+                this.coordsCsvImporting = true;
+                this.coordsCsvImportDone = 0;
+                this.coordsCsvImportTotal = dataRows.length;
+                this.coordsCsvSkipped = [];
+
+                let updated = 0;
+
+                for (const row of dataRows) {
+                    const name = nameIdx !== -1 ? row[nameIdx]?.trim() || "" : "";
+                    const hostname = hostnameIdx !== -1 ? row[hostnameIdx]?.trim() || "" : "";
+                    const lat = parseFloat(row[latIdx]);
+                    const lng = parseFloat(row[lngIdx]);
+
+                    const rowLabel = name || hostname || `row ${this.coordsCsvImportDone + 1}`;
+
+                    if (Number.isNaN(lat) || Number.isNaN(lng)) {
+                        this.coordsCsvSkipped.push(this.$t("coordsCsvSkippedInvalid", { row: rowLabel }));
+                        this.coordsCsvImportDone++;
+                        continue;
+                    }
+
+                    const monitors = Object.values(this.$root.monitorList || {});
+                    const match = findMonitorMatch(monitors, hostname, name);
+                    if (!match) {
+                        this.coordsCsvSkipped.push(this.$t("coordsCsvSkippedNoMatch", { row: rowLabel }));
+                        this.coordsCsvImportDone++;
+                        continue;
+                    }
+
+                    const res = await new Promise((resolve) => {
+                        this.$root.getSocket().emit("setMonitorLatLng", { id: match.id, lat, lng }, resolve);
+                    });
+
+                    if (res.ok) {
+                        updated++;
+                    } else {
+                        this.coordsCsvSkipped.push(this.$t("coordsCsvSkippedFailed", { row: rowLabel, msg: res.msg }));
+                    }
+
+                    this.coordsCsvImportDone++;
+                }
+
+                this.coordsCsvImporting = false;
+                this.coordsCsvSelectedFile = null;
+                this.$refs.coordsCsvFileInput.value = "";
+                this.$root.getMonitorList();
+
+                if (this.coordsCsvSkipped.length === 0) {
+                    this.$root.toastSuccess(this.$t("coordsCsvImportSuccess", { count: updated }));
+                } else {
+                    this.$root.toastError(this.$t("coordsCsvImportPartialFailure", { updated, skipped: this.coordsCsvSkipped.length }));
+                }
+            };
+            reader.onerror = () => {
+                this.$root.toastError(this.$t("Failed to read the file."));
+            };
+            reader.readAsText(this.coordsCsvSelectedFile);
         },
 
         /**
