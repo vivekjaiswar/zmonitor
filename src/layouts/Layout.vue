@@ -12,6 +12,24 @@
             </div>
         </div>
 
+        <div
+            v-if="$root.isAdmin && licenseStatus && (licenseStatus.state !== 'VALID' || licenseStatus.staleNeverCheckedIn)"
+            class="license-banner"
+            :class="licenseStatus.staleNeverCheckedIn ? 'never_checked_in' : licenseStatus.state.toLowerCase()"
+        >
+            <div class="container-fluid">
+                <template v-if="licenseStatus.staleNeverCheckedIn">
+                    {{ $t("licenseNeverCheckedIn") }}
+                </template>
+                <template v-else-if="licenseStatus.state === 'GRACE_PERIOD'">
+                    {{ $t("licenseGracePeriod") }}
+                </template>
+                <template v-else>
+                    {{ $t("licenseSoftLocked") }}
+                </template>
+            </div>
+        </div>
+
         <!-- Desktop header -->
         <header v-if="!$root.isMobile" class="d-flex flex-wrap justify-content-center py-2 mb-3 border-bottom">
             <router-link
@@ -182,6 +200,7 @@ export default {
             toastContainer: null,
             numActiveToasts: 0,
             toastContainerObserver: null,
+            licenseStatus: null,
         };
     },
 
@@ -218,7 +237,16 @@ export default {
         },
     },
 
-    watch: {},
+    watch: {
+        // mounted() can fire before the socket finishes auth-ing (see the
+        // allowLoginDialog comment in mixins/socket.js for the same race) -
+        // catch the case where login completes after Layout already mounted.
+        "$root.isAdmin"(isAdmin) {
+            if (isAdmin) {
+                this.fetchLicenseStatus();
+            }
+        },
+    },
 
     mounted() {
         this.toastContainer = document.querySelector(".bottom-right.toast-container");
@@ -235,6 +263,10 @@ export default {
         if (this.toastContainer != null) {
             this.toastContainerObserver.observe(this.toastContainer, { childList: true });
         }
+
+        if (this.$root.isAdmin) {
+            this.fetchLicenseStatus();
+        }
     },
 
     beforeUnmount() {
@@ -248,6 +280,14 @@ export default {
          */
         clearToasts() {
             toast.clear();
+        },
+
+        fetchLicenseStatus() {
+            this.$root.getSocket().emit("getLicenseStatus", (res) => {
+                if (res.ok) {
+                    this.licenseStatus = res;
+                }
+            });
         },
     },
 };
@@ -348,6 +388,24 @@ main {
     position: fixed;
     width: 100%;
     z-index: 99999;
+}
+
+.license-banner {
+    padding: 5px;
+    color: white;
+    text-align: center;
+
+    &.grace_period {
+        background-color: darkorange;
+    }
+
+    &.soft_locked {
+        background-color: crimson;
+    }
+
+    &.never_checked_in {
+        background-color: #6c757d;
+    }
 }
 
 // Profile Pic Button with Dropdown

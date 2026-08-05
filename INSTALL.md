@@ -84,6 +84,19 @@ docker ps                 # container should show "healthy"
 docker logs zmonitor      # tail startup logs
 ```
 
+## Outbound access required
+
+ZMonitor periodically checks in with ZennialHub's license server. If your
+server runs a restrictive outbound/egress firewall (common on ISP ops/NOC
+infrastructure), allowlist:
+
+```
+license.zennialhub.in:443 (outbound HTTPS)
+```
+
+If this is blocked, the dashboard shows a "never checked in" banner rather
+than failing silently — monitoring itself is never affected either way.
+
 ## Backup
 
 All monitor data lives in the data directory (default `/opt/zmonitor/data`):

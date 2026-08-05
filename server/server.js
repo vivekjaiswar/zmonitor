@@ -72,6 +72,8 @@ if (process.env.ZMONITOR_WS_ORIGIN_CHECK === "bypass") {
 const checkVersion = require("./check-version");
 log.info("server", "ZMonitor Version:", checkVersion.version);
 
+const license = require("./license/client");
+
 log.info("server", "Loading modules");
 
 log.debug("server", "Importing express");
@@ -233,6 +235,7 @@ const { maintenanceSocketHandler } = require("./socket-handlers/maintenance-sock
 const { apiKeySocketHandler } = require("./socket-handlers/api-key-socket-handler");
 const { userSocketHandler } = require("./socket-handlers/user-socket-handler");
 const { logSocketHandler } = require("./socket-handlers/log-socket-handler");
+const { licenseSocketHandler } = require("./socket-handlers/license-socket-handler");
 const { generalSocketHandler } = require("./socket-handlers/general-socket-handler");
 const { Settings } = require("./settings");
 const apicache = require("./modules/apicache");
@@ -2026,6 +2029,7 @@ let needSetup = false;
         apiKeySocketHandler(socket);
         userSocketHandler(socket);
         logSocketHandler(socket);
+        licenseSocketHandler(socket);
         remoteBrowserSocketHandler(socket);
         generalSocketHandler(socket, server);
         chartSocketHandler(socket);
@@ -2066,6 +2070,7 @@ let needSetup = false;
         await initBackgroundJobs();
 
         checkVersion.startInterval();
+        license.startCheckInLoop();
     });
 
     // Start cloudflared at the end if configured

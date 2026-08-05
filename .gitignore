@@ -26,3 +26,7 @@ extra/exe-builder/obj
 .vscode
 *.tar.gz
 *.tar.gz
+
+/license-server/keys/private.pem
+/license-server/*.db
+/license-server/backups
