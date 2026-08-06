@@ -38,7 +38,7 @@ class ZMonitorServer {
      */
     maintenanceList = {};
 
-    entryPage = "dashboard";
+    entryPage = "map";
     app = undefined;
     httpServer = undefined;
     io = undefined;

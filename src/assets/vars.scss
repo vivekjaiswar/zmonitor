@@ -1,10 +1,11 @@
-$primary: #146ed2;
-$success: #5cdd8b;
-$danger: #dc3545;
-$warning: #f8a306;
+$primary: #3b82c4;
+$success: #3fb950;
+$danger: #da3633;
+$warning: #d29922;
 $maintenance: #7c3aed;
 $link-color: #111;
-$border-radius: 10px;
+$border-radius: 4px;
+$border-radius-pill: $border-radius;
 $secondary-text: #aaa;
 
 $font-sans:
@@ -34,4 +35,4 @@ $easing-in: cubic-bezier(0.54, 0.78, 0.55, 0.97);
 $easing-out: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 $easing-in-out: cubic-bezier(0.79, 0.14, 0.15, 0.86);
 
-$dropdown-border-radius: 0.5rem;
+$dropdown-border-radius: 0.25rem;

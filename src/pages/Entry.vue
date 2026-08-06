@@ -34,14 +34,16 @@ export default {
                 const entryPage = res.entryPage;
                 if (entryPage?.startsWith("statusPage-")) {
                     this.$router.push("/status/" + entryPage.replace("statusPage-", ""));
-                } else {
-                    // should the old setting style still exist here?
+                } else if (entryPage === "dashboard") {
                     this.$router.push("/dashboard");
+                } else {
+                    // Default entry page (unset, or explicitly "map"): Network Map.
+                    this.$router.push("/map");
                 }
             } else if (res.type === "setup-database") {
                 this.$router.push("/setup-database");
             } else {
-                this.$router.push("/dashboard");
+                this.$router.push("/map");
             }
         } catch (e) {
             alert("Cannot connect to the backend server. Did you start the backend server? (npm run start-server-dev)");

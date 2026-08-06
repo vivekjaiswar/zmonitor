@@ -82,6 +82,21 @@
                     </label>
                 </div>
 
+                <div class="form-check">
+                    <input
+                        id="entryPageNetworkMap"
+                        v-model="settings.entryPage"
+                        class="form-check-input"
+                        type="radio"
+                        name="entryPage"
+                        value="map"
+                        required
+                    />
+                    <label class="form-check-label" for="entryPageNetworkMap">
+                        {{ $t("Network Map") }}
+                    </label>
+                </div>
+
                 <div v-for="statusPage in $root.statusPageList" :key="statusPage.id" class="form-check">
                     <input
                         :id="'status-page-' + statusPage.id"

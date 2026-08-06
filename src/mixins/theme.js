@@ -12,9 +12,10 @@ export default {
     },
 
     mounted() {
-        // Default Light
+        // Default Dark - command-center tool, not a light-first SaaS dashboard.
+        // Respects any explicit user choice already in localStorage (light/dark/auto).
         if (!this.userTheme) {
-            this.userTheme = "auto";
+            this.userTheme = "dark";
         }
 
         // Default Heartbeat Bar

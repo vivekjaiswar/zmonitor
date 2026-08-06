@@ -30,3 +30,4 @@ extra/exe-builder/obj
 /license-server/keys/private.pem
 /license-server/*.db
 /license-server/backups
+.gstack/
