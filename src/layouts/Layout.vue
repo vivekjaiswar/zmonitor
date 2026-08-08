@@ -30,130 +30,113 @@
             </div>
         </div>
 
-        <!-- Desktop header -->
-        <header v-if="!$root.isMobile" class="d-flex flex-wrap justify-content-center py-2 mb-3 border-bottom">
-            <router-link
-                to="/dashboard"
-                class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none"
-            >
-                <img class="bi me-2 ms-4 brand-icon" width="28" height="28" :src="appLogoUrl" />
-                <span class="fs-5 title">{{ appName }}</span>
-            </router-link>
+        <!-- Desktop: persistent left sidebar shell -->
+        <div v-if="!$root.isMobile" class="app-shell">
+            <aside v-if="$root.loggedIn" class="app-sidebar">
+                <router-link to="/map" class="sidebar-brand">
+                    <img class="brand-icon" width="28" height="28" :src="appLogoUrl" />
+                    <span class="title">{{ appName }}</span>
+                </router-link>
 
-            <a
-                v-if="hasNewVersion"
-                target="_blank"
-                href="https://github.com/vivekjaiswar/zmonitor/releases"
-                class="btn btn-primary me-3"
-            >
-                <font-awesome-icon icon="arrow-alt-circle-up" />
-                {{ $t("New Update") }}
-            </a>
-
-            <ul class="nav nav-pills">
-                <li v-if="$root.loggedIn" class="nav-item me-2">
-                    <router-link to="/manage-status-page" class="nav-link">
-                        <font-awesome-icon icon="stream" />
-                        {{ $t("Status Pages") }}
-                    </router-link>
-                </li>
-                <li v-if="$root.loggedIn" class="nav-item me-2">
-                    <router-link to="/dashboard" class="nav-link">
-                        <font-awesome-icon icon="tachometer-alt" />
-                        {{ $t("Dashboard") }}
-                    </router-link>
-                </li>
-                <li v-if="$root.loggedIn" class="nav-item me-2">
-                    <router-link to="/map" class="nav-link">
+                <nav class="sidebar-nav">
+                    <router-link to="/map" class="sidebar-link">
                         <font-awesome-icon icon="map-marker-alt" />
                         {{ $t("Network Map") }}
                     </router-link>
-                </li>
-                <li v-if="$root.loggedIn" class="nav-item">
-                    <div class="dropdown dropdown-profile-pic">
-                        <div class="nav-link" data-bs-toggle="dropdown">
-                            <div class="profile-pic">{{ $root.usernameFirstChar }}</div>
-                            <font-awesome-icon icon="angle-down" />
-                        </div>
+                    <router-link to="/dashboard" class="sidebar-link">
+                        <font-awesome-icon icon="tachometer-alt" />
+                        {{ $t("Dashboard") }}
+                    </router-link>
+                    <router-link to="/manage-status-page" class="sidebar-link">
+                        <font-awesome-icon icon="stream" />
+                        {{ $t("Status Pages") }}
+                    </router-link>
+                </nav>
 
-                        <!-- Header's Dropdown Menu -->
-                        <ul class="dropdown-menu">
-                            <!-- Username -->
-                            <li>
-                                <i18n-t
-                                    v-if="$root.username != null"
-                                    tag="span"
-                                    keypath="signedInDisp"
-                                    class="dropdown-item-text"
-                                >
-                                    <strong>{{ $root.username }}</strong>
-                                </i18n-t>
-                                <span v-if="$root.username == null" class="dropdown-item-text">
-                                    {{ $t("signedInDispDisabled") }}
-                                </span>
-                            </li>
+                <a
+                    v-if="hasNewVersion"
+                    target="_blank"
+                    href="https://github.com/vivekjaiswar/zmonitor/releases"
+                    class="sidebar-update-link"
+                >
+                    <font-awesome-icon icon="arrow-alt-circle-up" />
+                    {{ $t("New Update") }}
+                </a>
 
-                            <li><hr class="dropdown-divider" /></li>
-
-                            <!-- Functions -->
-                            <li>
-                                <router-link
-                                    to="/maintenance"
-                                    class="dropdown-item"
-                                    :class="{ active: $route.path.includes('manage-maintenance') }"
-                                >
-                                    <font-awesome-icon icon="wrench" />
-                                    {{ $t("Maintenance") }}
-                                </router-link>
-                            </li>
-
-                            <li v-if="$root.isAdmin">
-                                <router-link
-                                    to="/settings/general"
-                                    class="dropdown-item"
-                                    :class="{ active: $route.path.includes('settings') }"
-                                >
-                                    <font-awesome-icon icon="cog" />
-                                    {{ $t("Settings") }}
-                                </router-link>
-                            </li>
-
-                            <li>
-                                <a
-                                    href="https://github.com/vivekjaiswar/zmonitor"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="dropdown-item"
-                                >
-                                    <font-awesome-icon icon="info-circle" />
-                                    {{ $t("Help") }}
-                                </a>
-                            </li>
-
-                            <li v-if="$root.loggedIn && $root.socket.token !== 'autoLogin'">
-                                <button class="dropdown-item" @click="$root.logout">
-                                    <font-awesome-icon icon="sign-out-alt" />
-                                    {{ $t("Logout") }}
-                                </button>
-                            </li>
-                        </ul>
+                <div class="sidebar-footer dropdown dropdown-profile-pic dropup">
+                    <div class="sidebar-link profile-trigger" data-bs-toggle="dropdown">
+                        <div class="profile-pic">{{ $root.usernameFirstChar }}</div>
+                        <span class="profile-name">{{ $root.username || $t("signedInDispDisabled") }}</span>
+                        <font-awesome-icon icon="angle-down" class="ms-auto" />
                     </div>
-                </li>
-            </ul>
-        </header>
 
-        <!-- Mobile header -->
-        <header v-else class="d-flex flex-wrap justify-content-center pt-2 pb-2 mb-3">
-            <router-link to="/dashboard" class="d-flex align-items-center text-dark text-decoration-none">
-                <img class="bi" width="40" height="40" :src="appLogoUrl" />
-                <span class="fs-4 title ms-2">{{ appName }}</span>
-            </router-link>
-        </header>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <router-link
+                                to="/maintenance"
+                                class="dropdown-item"
+                                :class="{ active: $route.path.includes('manage-maintenance') }"
+                            >
+                                <font-awesome-icon icon="wrench" />
+                                {{ $t("Maintenance") }}
+                            </router-link>
+                        </li>
 
-        <main>
-            <router-view v-if="$root.loggedIn" />
-            <Login v-if="!$root.loggedIn && $root.allowLoginDialog" />
-        </main>
+                        <li v-if="$root.isAdmin">
+                            <router-link
+                                to="/settings/general"
+                                class="dropdown-item"
+                                :class="{ active: $route.path.includes('settings') }"
+                            >
+                                <font-awesome-icon icon="cog" />
+                                {{ $t("Settings") }}
+                            </router-link>
+                        </li>
+
+                        <li>
+                            <a
+                                href="https://github.com/vivekjaiswar/zmonitor"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="dropdown-item"
+                            >
+                                <font-awesome-icon icon="info-circle" />
+                                {{ $t("Help") }}
+                            </a>
+                        </li>
+
+                        <li v-if="$root.loggedIn && $root.socket.token !== 'autoLogin'">
+                            <button class="dropdown-item" @click="$root.logout">
+                                <font-awesome-icon icon="sign-out-alt" />
+                                {{ $t("Logout") }}
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </aside>
+
+            <div class="app-content">
+                <main>
+                    <router-view v-if="$root.loggedIn" />
+                    <Login v-if="!$root.loggedIn && $root.allowLoginDialog" />
+                </main>
+            </div>
+        </div>
+
+        <!-- Mobile: unchanged top header + bottom-nav -->
+        <template v-else>
+            <header class="d-flex flex-wrap justify-content-center pt-2 pb-2 mb-3">
+                <router-link to="/dashboard" class="d-flex align-items-center text-dark text-decoration-none">
+                    <img class="bi" width="40" height="40" :src="appLogoUrl" />
+                    <span class="fs-4 title ms-2">{{ appName }}</span>
+                </router-link>
+            </header>
+
+            <main>
+                <router-view v-if="$root.loggedIn" />
+                <Login v-if="!$root.loggedIn && $root.allowLoginDialog" />
+            </main>
+        </template>
 
         <!-- Mobile Only -->
         <div v-if="$root.isMobile" style="width: 100%; height: calc(60px + env(safe-area-inset-bottom))" />
@@ -317,29 +300,116 @@ export default {
     letter-spacing: -0.01em;
 }
 
-.nav-link {
-    &.active {
-        // !important: must beat Bootstrap's own compiled .nav-pills .nav-link.active rule
-        background-color: var(--brand-primary) !important;
+$sidebar-width: 240px;
+
+.app-shell {
+    display: flex;
+    align-items: stretch;
+    min-height: 100vh;
+}
+
+.app-sidebar {
+    width: $sidebar-width;
+    flex: 0 0 $sidebar-width;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background-color: #f8f9fa;
+    border-right: 1px solid $card-border-color;
+    padding: 16px 0;
+
+    .dark & {
+        background-color: $dark-header-bg;
+        border-right-color: $dark-border-color;
+    }
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px 16px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 12px;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: $border-radius;
+    border-left: 3px solid transparent;
+    color: $secondary-text;
+    text-decoration: none;
+    font-size: 14px;
+    cursor: pointer;
+
+    .dark & {
+        color: $dark-font-color;
     }
 
     &:hover {
-        background-color: var(--brand-primary);
-        color: #fff;
-
-        .dark & {
-            background-color: var(--brand-primary);
-            color: #000;
-        }
-
-        &.active {
-            background-color: $highlight;
-        }
+        background-color: rgba($primary, 0.08);
+        color: $primary;
     }
 
-    &.status-page {
-        background-color: rgba(255, 255, 255, 0.1);
+    &.active {
+        background-color: rgba($primary, 0.12);
+        border-left-color: $primary;
+        color: $primary;
+        font-weight: 600;
     }
+}
+
+.sidebar-update-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 12px 0;
+    padding: 8px 12px;
+    border-radius: $border-radius;
+    background-color: $primary;
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: 12px;
+    border-top: 1px solid $card-border-color;
+
+    .dark & {
+        border-top-color: $dark-border-color;
+    }
+
+    .profile-trigger {
+        border-left: none;
+    }
+
+    .profile-name {
+        font-size: 13px;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.app-content {
+    flex: 1;
+    min-width: 0;
+    padding: 24px 32px;
 }
 
 .bottom-nav {
@@ -380,16 +450,14 @@ export default {
     }
 }
 
-main {
+// Only the mobile layout (top header + bottom-nav) needs main to reserve
+// space for those bars - the desktop sidebar shell sizes itself via flex.
+.mobile main {
     min-height: calc(100vh - 160px);
 }
 
 .title {
     font-weight: bold;
-}
-
-.nav {
-    margin-right: 25px;
 }
 
 .lost-connection {
@@ -422,19 +490,6 @@ main {
 // Profile Pic Button with Dropdown
 .dropdown-profile-pic {
     user-select: none;
-
-    .nav-link {
-        cursor: pointer;
-        display: flex;
-        gap: 6px;
-        align-items: center;
-        background-color: rgba(200, 200, 200, 0.2);
-        padding: 0.5rem 0.8rem;
-
-        &:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-    }
 
     .dropdown-menu {
         transition: all 0.2s;
