@@ -102,6 +102,7 @@ const app = server.app;
 log.debug("server", "Importing Monitor");
 const Monitor = require("./model/monitor");
 const User = require("./model/user");
+const { lookupIpLocation } = require("./util-geoip");
 
 log.debug("server", "Importing Settings");
 const {
@@ -843,6 +844,25 @@ let needSetup = false;
                 }
                 bean.user_id = socket.userID;
 
+                // Auto-locate: if the user didn't set map coordinates themselves,
+                // try to derive them from the monitor's hostname/IP so the map
+                // is populated without requiring manual lookup for every monitor.
+                if (bean.lat === null || bean.lat === undefined) {
+                    let targetHost = bean.hostname;
+                    if (!targetHost && bean.url) {
+                        try {
+                            targetHost = new URL(bean.url).hostname;
+                        } catch (_) {
+                            targetHost = null;
+                        }
+                    }
+                    const location = targetHost ? await lookupIpLocation(targetHost) : null;
+                    if (location) {
+                        bean.lat = location.lat;
+                        bean.lng = location.lng;
+                    }
+                }
+
                 bean.validate();
 
                 await R.store(bean);
@@ -1091,6 +1111,46 @@ let needSetup = false;
                 await R.store(bean);
 
                 callback({ ok: true });
+            } catch (e) {
+                callback({ ok: false, msg: e.message });
+            }
+        });
+
+        // Auto-locate a single monitor from its hostname/IP. Used both by the
+        // "Auto-locate" button on the Edit Monitor form and the bulk backfill
+        // action in Settings -> Backup for monitors that predate this feature.
+        socket.on("autoLocateMonitor", async (monitorID, callback) => {
+            try {
+                checkAdmin(socket);
+
+                const bean = await R.findOne("monitor", " id = ? ", [monitorID]);
+                if (!bean) {
+                    throw new Error("Monitor not found");
+                }
+                if (bean.user_id !== socket.userID) {
+                    throw new Error("Permission denied.");
+                }
+
+                let targetHost = bean.hostname;
+                if (!targetHost && bean.url) {
+                    try {
+                        targetHost = new URL(bean.url).hostname;
+                    } catch (_) {
+                        targetHost = null;
+                    }
+                }
+
+                const location = targetHost ? await lookupIpLocation(targetHost) : null;
+                if (!location) {
+                    callback({ ok: true, found: false });
+                    return;
+                }
+
+                bean.lat = location.lat;
+                bean.lng = location.lng;
+                await R.store(bean);
+
+                callback({ ok: true, found: true, lat: location.lat, lng: location.lng });
             } catch (e) {
                 callback({ ok: false, msg: e.message });
             }

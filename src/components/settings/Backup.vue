@@ -82,6 +82,23 @@
             </ul>
         </div>
 
+        <h5 class="mt-5 mb-3">{{ $t("autoLocateAllTitle") }}</h5>
+        <p class="form-text">
+            {{ $t("autoLocateAllDescription", { count: monitorsMissingCoords }) }}
+        </p>
+
+        <button
+            class="btn btn-primary"
+            :disabled="autoLocatingAll || monitorsMissingCoords === 0"
+            @click="autoLocateAll"
+        >
+            {{ $t("autoLocateAllButton") }}
+        </button>
+
+        <p v-if="autoLocatingAll" class="form-text mt-2">
+            {{ $t("csvImportProgress", { done: autoLocateAllDone, total: autoLocateAllTotal }) }}
+        </p>
+
         <h5 class="mt-5 mb-3">{{ $t("Import Backup") }}</h5>
         <p class="form-text">
             {{ $t("importBackupDescription") }}
@@ -231,7 +248,19 @@ export default {
             coordsCsvImportDone: 0,
             coordsCsvImportTotal: 0,
             coordsCsvSkipped: [],
+
+            autoLocatingAll: false,
+            autoLocateAllDone: 0,
+            autoLocateAllTotal: 0,
         };
+    },
+
+    computed: {
+        monitorsMissingCoords() {
+            return Object.values(this.$root.monitorList || {}).filter(
+                (m) => m.lat === null || m.lat === undefined
+            ).length;
+        },
     },
 
     methods: {
@@ -461,6 +490,49 @@ export default {
                 this.$root.toastError(this.$t("Failed to read the file."));
             };
             reader.readAsText(this.coordsCsvSelectedFile);
+        },
+
+        /**
+         * Back-fill coordinates for every monitor that doesn't have any yet,
+         * by looking up each one's hostname/IP. Paced with a delay between
+         * lookups to stay under the free geolocation API's rate limit.
+         * @returns {Promise<void>}
+         */
+        async autoLocateAll() {
+            const targets = Object.values(this.$root.monitorList || {}).filter(
+                (m) => m.lat === null || m.lat === undefined
+            );
+            if (targets.length === 0) {
+                return;
+            }
+
+            this.autoLocatingAll = true;
+            this.autoLocateAllDone = 0;
+            this.autoLocateAllTotal = targets.length;
+
+            let found = 0;
+
+            for (const monitor of targets) {
+                const res = await new Promise((resolve) => {
+                    this.$root.getSocket().emit("autoLocateMonitor", monitor.id, resolve);
+                });
+
+                if (res.ok && res.found) {
+                    found++;
+                }
+
+                this.autoLocateAllDone++;
+
+                if (this.autoLocateAllDone < targets.length) {
+                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                }
+            }
+
+            this.autoLocatingAll = false;
+            this.$root.getMonitorList();
+            this.$root.toastSuccess(
+                this.$t("autoLocateAllResult", { found, total: targets.length })
+            );
         },
 
         /**

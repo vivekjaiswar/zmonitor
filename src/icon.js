@@ -58,6 +58,7 @@ import {
     faMapMarkerAlt,
     faBars,
     faAngleDoubleLeft,
+    faCrosshairs,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -113,6 +114,7 @@ library.add(
     faMapMarkerAlt,
     faBars,
     faAngleDoubleLeft,
+    faCrosshairs,
 );
 
 export { FontAwesomeIcon };

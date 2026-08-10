@@ -2144,6 +2144,17 @@
                                             :placeholder="$t('Longitude')"
                                         />
                                     </div>
+                                    <div v-if="isEdit" class="col-auto">
+                                        <button
+                                            class="btn btn-outline-normal"
+                                            type="button"
+                                            :disabled="autoLocating"
+                                            @click="autoLocate"
+                                        >
+                                            <font-awesome-icon icon="crosshairs" :spin="autoLocating" />
+                                            {{ $t("autoLocate") }}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="form-text">{{ $t("mapCoordinatesHelpText") }}</div>
                             </div>
@@ -3311,6 +3322,7 @@ export default {
         return {
             minInterval: MIN_INTERVAL_SECOND,
             processing: false,
+            autoLocating: false,
             monitor: {
                 notificationIDList: {},
                 // Do not add default value here, please check init() method
@@ -3932,6 +3944,27 @@ message HealthCheckResponse {
         this.kafkaSaslMechanismOptions = kafkaSaslMechanismOptions;
     },
     methods: {
+        /**
+         * Look up this monitor's coordinates from its hostname/IP and fill
+         * the Latitude/Longitude fields, without requiring a manual lookup.
+         * @returns {void}
+         */
+        autoLocate() {
+            this.autoLocating = true;
+            this.$root.getSocket().emit("autoLocateMonitor", this.monitor.id, (res) => {
+                this.autoLocating = false;
+                if (!res.ok) {
+                    this.$root.toastError(res.msg);
+                } else if (!res.found) {
+                    this.$root.toastError("autoLocateNotFound");
+                } else {
+                    this.monitor.lat = res.lat;
+                    this.monitor.lng = res.lng;
+                    this.$root.toastSuccess("autoLocateSuccess");
+                }
+            });
+        },
+
         /**
          * Initialize the edit monitor form
          * @returns {void}
