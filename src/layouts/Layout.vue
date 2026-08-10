@@ -30,34 +30,26 @@
             </div>
         </div>
 
-        <!-- Desktop: persistent left sidebar shell -->
-        <div v-if="!$root.isMobile" class="app-shell">
-            <button
-                v-if="$root.loggedIn && sidebarHidden"
-                type="button"
-                class="sidebar-reveal-btn"
-                :title="$t('showMenu')"
-                @click="toggleSidebar"
-            >
-                <font-awesome-icon icon="bars" />
-            </button>
+        <!-- Desktop: persistent header (brand always visible, white-label safe)
+             plus a collapsible left sidebar shell for navigation -->
+        <template v-if="!$root.isMobile">
+            <header v-if="$root.loggedIn" class="app-header">
+                <router-link to="/map" class="app-header-brand">
+                    <img class="brand-icon" width="28" height="28" :src="appLogoUrl" />
+                    <span class="title">{{ appName }}</span>
+                </router-link>
+                <button
+                    type="button"
+                    class="sidebar-toggle-btn"
+                    :title="$t(sidebarHidden ? 'showMenu' : 'hideMenu')"
+                    @click="toggleSidebar"
+                >
+                    <font-awesome-icon :icon="sidebarHidden ? 'bars' : 'angle-double-left'" />
+                </button>
+            </header>
 
-            <aside v-if="$root.loggedIn && !sidebarHidden" class="app-sidebar">
-                <div class="sidebar-brand-row">
-                    <router-link to="/map" class="sidebar-brand">
-                        <img class="brand-icon" width="28" height="28" :src="appLogoUrl" />
-                        <span class="title">{{ appName }}</span>
-                    </router-link>
-                    <button
-                        type="button"
-                        class="sidebar-hide-btn"
-                        :title="$t('hideMenu')"
-                        @click="toggleSidebar"
-                    >
-                        <font-awesome-icon icon="angle-double-left" />
-                    </button>
-                </div>
-
+            <div class="app-shell">
+                <aside v-if="$root.loggedIn && !sidebarHidden" class="app-sidebar">
                 <nav class="sidebar-nav">
                     <router-link to="/map" class="sidebar-link">
                         <font-awesome-icon icon="map-marker-alt" />
@@ -133,15 +125,16 @@
                         </li>
                     </ul>
                 </div>
-            </aside>
+                </aside>
 
-            <div class="app-content">
-                <main>
-                    <router-view v-if="$root.loggedIn" />
-                    <Login v-if="!$root.loggedIn && $root.allowLoginDialog" />
-                </main>
+                <div class="app-content">
+                    <main>
+                        <router-view v-if="$root.loggedIn" />
+                        <Login v-if="!$root.loggedIn && $root.allowLoginDialog" />
+                    </main>
+                </div>
             </div>
-        </div>
+        </template>
 
         <!-- Mobile: unchanged top header + bottom-nav -->
         <template v-else>
@@ -331,40 +324,27 @@ export default {
 }
 
 $sidebar-width: 240px;
+$app-header-height: 56px;
 
-.app-shell {
-    display: flex;
-    align-items: stretch;
-    min-height: 100vh;
-}
-
-.app-sidebar {
-    width: $sidebar-width;
-    flex: 0 0 $sidebar-width;
-    display: flex;
-    flex-direction: column;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    background-color: #f8f9fa;
-    border-right: 1px solid $card-border-color;
-    padding: 16px 0;
-
-    .dark & {
-        background-color: $dark-header-bg;
-        border-right-color: $dark-border-color;
-    }
-}
-
-.sidebar-brand-row {
+// Always visible regardless of sidebar state - carries the white-label
+// brand (logo/app name), so it must never be hideable along with the nav.
+.app-header {
+    height: $app-header-height;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 0 12px 16px 20px;
+    padding: 0 16px 0 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid $card-border-color;
+
+    .dark & {
+        background-color: $dark-header-bg;
+        border-bottom-color: $dark-border-color;
+    }
 }
 
-.sidebar-brand {
+.app-header-brand {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -373,8 +353,7 @@ $sidebar-width: 240px;
     min-width: 0;
 }
 
-.sidebar-hide-btn,
-.sidebar-reveal-btn {
+.sidebar-toggle-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -398,15 +377,27 @@ $sidebar-width: 240px;
     }
 }
 
-.sidebar-reveal-btn {
-    position: fixed;
-    top: 16px;
-    left: 16px;
-    z-index: 20;
-    background: #f8f9fa;
+.app-shell {
+    display: flex;
+    align-items: stretch;
+    min-height: calc(100vh - #{$app-header-height});
+}
+
+.app-sidebar {
+    width: $sidebar-width;
+    flex: 0 0 $sidebar-width;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: $app-header-height;
+    height: calc(100vh - #{$app-header-height});
+    background-color: #f8f9fa;
+    border-right: 1px solid $card-border-color;
+    padding: 16px 0;
 
     .dark & {
         background-color: $dark-header-bg;
+        border-right-color: $dark-border-color;
     }
 }
 
