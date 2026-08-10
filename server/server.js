@@ -1131,28 +1131,59 @@ let needSetup = false;
                     throw new Error("Permission denied.");
                 }
 
-                let targetHost = bean.hostname;
-                if (!targetHost && bean.url) {
-                    try {
-                        targetHost = new URL(bean.url).hostname;
-                    } catch (_) {
-                        targetHost = null;
-                    }
-                }
-
-                const location = targetHost ? await lookupIpLocation(targetHost) : null;
+                const location = await autoLocateBean(bean);
                 if (!location) {
                     callback({ ok: true, found: false });
                     return;
                 }
 
-                bean.lat = location.lat;
-                bean.lng = location.lng;
-                await R.store(bean);
-
                 callback({ ok: true, found: true, lat: location.lat, lng: location.lng });
             } catch (e) {
                 callback({ ok: false, msg: e.message });
+            }
+        });
+
+        // Backfill coordinates for every monitor missing them. Runs on the
+        // server rather than the calling browser tab, so it survives the
+        // admin navigating away, reloading, or closing the page mid-run -
+        // a multi-minute loop tied to one tab's lifetime is too fragile.
+        socket.on("autoLocateAllMonitors", async (_data, callback) => {
+            try {
+                checkAdmin(socket);
+
+                if (autoLocateAllRunning) {
+                    callback({ ok: false, msg: "Auto-locate is already running." });
+                    return;
+                }
+
+                const beans = await R.find("monitor", " (lat IS NULL) AND user_id = ? ", [socket.userID]);
+                callback({ ok: true, total: beans.length });
+
+                if (beans.length === 0) {
+                    return;
+                }
+
+                autoLocateAllRunning = true;
+                let done = 0;
+                let found = 0;
+
+                for (const bean of beans) {
+                    const location = await autoLocateBean(bean);
+                    if (location) {
+                        found++;
+                    }
+                    done++;
+                    io.to(socket.userID).emit("autoLocateAllProgress", { done, total: beans.length, found });
+
+                    if (done < beans.length) {
+                        await sleep(1500);
+                    }
+                }
+
+                autoLocateAllRunning = false;
+            } catch (e) {
+                autoLocateAllRunning = false;
+                log.error("monitor", `Error in autoLocateAllMonitors: ${e.message}`);
             }
         });
 
@@ -2199,6 +2230,37 @@ async function checkOwner(userID, monitorID) {
     if (!row) {
         throw new Error("You do not own this monitor.");
     }
+}
+
+// Guards against multiple concurrent bulk auto-locate runs (e.g. the admin
+// clicking the button again because no progress is visible yet).
+let autoLocateAllRunning = false;
+
+/**
+ * Look up and persist coordinates for a single monitor bean, from its
+ * hostname (or the host parsed out of its URL for HTTP-type monitors).
+ * @param {object} bean Monitor bean (redbean-node)
+ * @returns {Promise<{lat: number, lng: number} | null>} The coordinates found, or null
+ */
+async function autoLocateBean(bean) {
+    let targetHost = bean.hostname;
+    if (!targetHost && bean.url) {
+        try {
+            targetHost = new URL(bean.url).hostname;
+        } catch (_) {
+            targetHost = null;
+        }
+    }
+
+    const location = targetHost ? await lookupIpLocation(targetHost) : null;
+    if (!location) {
+        return null;
+    }
+
+    bean.lat = location.lat;
+    bean.lng = location.lng;
+    await R.store(bean);
+    return location;
 }
 
 /**

@@ -263,7 +263,33 @@ export default {
         },
     },
 
+    mounted() {
+        // The backfill loop itself lives on the server; this listener only
+        // reflects its progress while this page happens to be open.
+        this.$root.getSocket().on("autoLocateAllProgress", this.onAutoLocateAllProgress);
+    },
+
+    beforeUnmount() {
+        this.$root.getSocket().off("autoLocateAllProgress", this.onAutoLocateAllProgress);
+    },
+
     methods: {
+        /**
+         * Handle a progress update from the server-side backfill job.
+         * @param {{done: number, total: number, found: number}} data Progress payload
+         * @returns {void}
+         */
+        onAutoLocateAllProgress(data) {
+            this.autoLocateAllDone = data.done;
+            this.autoLocateAllTotal = data.total;
+
+            if (data.done >= data.total) {
+                this.autoLocatingAll = false;
+                this.$root.getMonitorList();
+                this.$root.toastSuccess(this.$t("autoLocateAllResult", { found: data.found, total: data.total }));
+            }
+        },
+
         /**
          * Build a CSV file (sr_no, name, description, ip_address, location)
          * from the currently loaded monitor list and trigger a browser download.
@@ -493,46 +519,22 @@ export default {
         },
 
         /**
-         * Back-fill coordinates for every monitor that doesn't have any yet,
-         * by looking up each one's hostname/IP. Paced with a delay between
-         * lookups to stay under the free geolocation API's rate limit.
-         * @returns {Promise<void>}
+         * Kick off the server-side coordinate backfill for every monitor
+         * missing them. The loop itself runs on the server (not this
+         * browser tab) so it survives navigating away, reloading, or
+         * closing this page - only the progress display lives here.
+         * @returns {void}
          */
-        async autoLocateAll() {
-            const targets = Object.values(this.$root.monitorList || {}).filter(
-                (m) => m.lat === null || m.lat === undefined
-            );
-            if (targets.length === 0) {
-                return;
-            }
-
-            this.autoLocatingAll = true;
-            this.autoLocateAllDone = 0;
-            this.autoLocateAllTotal = targets.length;
-
-            let found = 0;
-
-            for (const monitor of targets) {
-                const res = await new Promise((resolve) => {
-                    this.$root.getSocket().emit("autoLocateMonitor", monitor.id, resolve);
-                });
-
-                if (res.ok && res.found) {
-                    found++;
+        autoLocateAll() {
+            this.$root.getSocket().emit("autoLocateAllMonitors", null, (res) => {
+                if (!res.ok) {
+                    this.$root.toastError(res.msg);
+                    return;
                 }
-
-                this.autoLocateAllDone++;
-
-                if (this.autoLocateAllDone < targets.length) {
-                    await new Promise((resolve) => setTimeout(resolve, 1500));
-                }
-            }
-
-            this.autoLocatingAll = false;
-            this.$root.getMonitorList();
-            this.$root.toastSuccess(
-                this.$t("autoLocateAllResult", { found, total: targets.length })
-            );
+                this.autoLocatingAll = true;
+                this.autoLocateAllDone = 0;
+                this.autoLocateAllTotal = res.total;
+            });
         },
 
         /**
