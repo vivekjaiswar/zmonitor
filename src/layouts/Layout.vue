@@ -32,11 +32,31 @@
 
         <!-- Desktop: persistent left sidebar shell -->
         <div v-if="!$root.isMobile" class="app-shell">
-            <aside v-if="$root.loggedIn" class="app-sidebar">
-                <router-link to="/map" class="sidebar-brand">
-                    <img class="brand-icon" width="28" height="28" :src="appLogoUrl" />
-                    <span class="title">{{ appName }}</span>
-                </router-link>
+            <button
+                v-if="$root.loggedIn && sidebarHidden"
+                type="button"
+                class="sidebar-reveal-btn"
+                :title="$t('showMenu')"
+                @click="toggleSidebar"
+            >
+                <font-awesome-icon icon="bars" />
+            </button>
+
+            <aside v-if="$root.loggedIn && !sidebarHidden" class="app-sidebar">
+                <div class="sidebar-brand-row">
+                    <router-link to="/map" class="sidebar-brand">
+                        <img class="brand-icon" width="28" height="28" :src="appLogoUrl" />
+                        <span class="title">{{ appName }}</span>
+                    </router-link>
+                    <button
+                        type="button"
+                        class="sidebar-hide-btn"
+                        :title="$t('hideMenu')"
+                        @click="toggleSidebar"
+                    >
+                        <font-awesome-icon icon="angle-double-left" />
+                    </button>
+                </div>
 
                 <nav class="sidebar-nav">
                     <router-link to="/map" class="sidebar-link">
@@ -195,6 +215,7 @@ export default {
             numActiveToasts: 0,
             toastContainerObserver: null,
             licenseStatus: null,
+            sidebarHidden: localStorage.getItem("sidebarHidden") === "true",
         };
     },
 
@@ -269,6 +290,15 @@ export default {
 
     methods: {
         /**
+         * Toggle the desktop sidebar's visibility and persist the choice.
+         * @returns {void}
+         */
+        toggleSidebar() {
+            this.sidebarHidden = !this.sidebarHidden;
+            localStorage.setItem("sidebarHidden", this.sidebarHidden);
+        },
+
+        /**
          * Clear all toast notifications.
          * @returns {void}
          */
@@ -326,13 +356,58 @@ $sidebar-width: 240px;
     }
 }
 
+.sidebar-brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 12px 16px 20px;
+}
+
 .sidebar-brand {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 20px 16px;
     text-decoration: none;
     color: inherit;
+    min-width: 0;
+}
+
+.sidebar-hide-btn,
+.sidebar-reveal-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border: 1px solid $card-border-color;
+    border-radius: $border-radius;
+    background: transparent;
+    color: $secondary-text;
+    cursor: pointer;
+
+    .dark & {
+        border-color: $dark-border-color;
+        color: $dark-font-color;
+    }
+
+    &:hover {
+        color: $primary;
+        border-color: $primary;
+    }
+}
+
+.sidebar-reveal-btn {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 20;
+    background: #f8f9fa;
+
+    .dark & {
+        background-color: $dark-header-bg;
+    }
 }
 
 .sidebar-nav {
