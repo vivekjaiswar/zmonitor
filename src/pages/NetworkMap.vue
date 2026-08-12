@@ -99,10 +99,30 @@ export default {
     },
 
     computed: {
+        // Site hierarchy (e.g. an OLT group with ONTs as children): a child
+        // monitor with no coordinates of its own shows at its nearest
+        // located ancestor's position, rather than not appearing at all.
+        // This is the only piece Phase 1 of OLT/ONT support needs - the
+        // hierarchy itself is just the existing monitor group/parent
+        // mechanism, nothing new to model.
         mappedMonitors() {
-            return Object.values(this.$root.monitorList || {}).filter(
-                (m) => m.lat !== null && m.lat !== undefined && m.lng !== null && m.lng !== undefined
-            );
+            const all = this.$root.monitorList || {};
+            const resolveLocation = (monitor, depth = 0) => {
+                if (monitor.lat !== null && monitor.lat !== undefined && monitor.lng !== null && monitor.lng !== undefined) {
+                    return { lat: monitor.lat, lng: monitor.lng, inherited: depth > 0 };
+                }
+                if (depth >= 10 || !monitor.parent || !all[monitor.parent]) {
+                    return null;
+                }
+                return resolveLocation(all[monitor.parent], depth + 1);
+            };
+
+            return Object.values(all)
+                .map((m) => {
+                    const location = resolveLocation(m);
+                    return location ? { ...m, lat: location.lat, lng: location.lng, locationInherited: location.inherited } : null;
+                })
+                .filter(Boolean);
         },
         unmappedCount() {
             return Object.values(this.$root.monitorList || {}).length - this.mappedMonitors.length;
@@ -208,9 +228,12 @@ export default {
                     this.markers[monitor.id].setLatLng([ monitor.lat, monitor.lng ]);
                     this.markers[monitor.id].setIcon(icon);
                 } else {
+                    const popupText = monitor.locationInherited
+                        ? `${monitor.name} <span class="map-popup-inherited">(${this.$t("mapLocationInherited")})</span>`
+                        : monitor.name;
                     this.markers[monitor.id] = L.marker([ monitor.lat, monitor.lng ], { icon })
                         .addTo(this.map)
-                        .bindPopup(monitor.name);
+                        .bindPopup(popupText);
                 }
             }
 
@@ -367,6 +390,11 @@ export default {
     height: 16px;
     border: 2px solid white;
     box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.map-popup-inherited {
+    color: #8b949e;
+    font-size: 11px;
 }
 
 .map-marker-circle {
