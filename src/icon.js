@@ -59,6 +59,7 @@ import {
     faBars,
     faAngleDoubleLeft,
     faCrosshairs,
+    faFileExport,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -115,6 +116,7 @@ library.add(
     faBars,
     faAngleDoubleLeft,
     faCrosshairs,
+    faFileExport,
 );
 
 export { FontAwesomeIcon };

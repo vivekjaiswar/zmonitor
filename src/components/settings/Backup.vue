@@ -157,21 +157,7 @@
 <script>
 import Confirm from "../../components/Confirm.vue";
 import { findMonitorMatch } from "../../util-csv-match";
-
-/**
- * Escape a value for inclusion in a CSV cell (RFC4180-ish): wrap in quotes
- * and double up any embedded quotes if the value contains a comma, quote,
- * or newline.
- * @param {*} value Value to escape
- * @returns {string} CSV-safe cell content
- */
-function csvEscape(value) {
-    const str = String(value ?? "");
-    if (/["\n,]/.test(str)) {
-        return `"${str.replace(/"/g, '""')}"`;
-    }
-    return str;
-}
+import { csvEscape } from "../../util-csv";
 
 /**
  * Minimal RFC4180-ish CSV parser: handles quoted fields with embedded

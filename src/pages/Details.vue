@@ -136,7 +136,38 @@
                         <font-awesome-icon icon="trash" />
                         {{ $t("Delete") }}
                     </button>
+                    <button class="btn btn-normal" @click="showExportPanel = !showExportPanel">
+                        <font-awesome-icon icon="file-export" />
+                        {{ $t("Export Logs") }}
+                    </button>
                 </div>
+            </div>
+
+            <div v-if="showExportPanel" class="shadow-box export-logs-panel my-3">
+                <div class="export-logs-quick">
+                    <button class="btn btn-outline-normal" :disabled="exporting" @click="exportLogs('today')">
+                        {{ $t("Today") }}
+                    </button>
+                    <button class="btn btn-outline-normal" :disabled="exporting" @click="exportLogs('month')">
+                        {{ $t("This Month") }}
+                    </button>
+                </div>
+                <div class="export-logs-custom">
+                    <label class="form-label mb-0">{{ $t("Custom Range") }}</label>
+                    <div class="export-logs-custom-row">
+                        <input v-model="exportStartDate" type="date" class="form-control" />
+                        <span>{{ $t("to") }}</span>
+                        <input v-model="exportEndDate" type="date" class="form-control" />
+                        <button
+                            class="btn btn-primary"
+                            :disabled="exporting || !exportStartDate || !exportEndDate"
+                            @click="exportLogs('custom')"
+                        >
+                            {{ $t("Export") }}
+                        </button>
+                    </div>
+                </div>
+                <div class="form-text mt-2">{{ $t("exportLogsHelpText") }}</div>
             </div>
 
             <div class="shadow-box status-band">
@@ -442,6 +473,8 @@ import Uptime from "../components/Uptime.vue";
 import Pagination from "v-pagination-3";
 const PingChart = defineAsyncComponent(() => import("../components/PingChart.vue"));
 import Tag from "../components/Tag.vue";
+import { csvEscape } from "../util-csv";
+import dayjs from "dayjs";
 import CertificateInfo from "../components/CertificateInfo.vue";
 import { getMonitorRelativeURL } from "../util.ts";
 import { URL } from "whatwg-url";
@@ -484,6 +517,10 @@ export default {
             },
             cacheTime: Date.now(),
             importantHeartBeatListLength: 0,
+            showExportPanel: false,
+            exporting: false,
+            exportStartDate: "",
+            exportEndDate: "",
             displayedRecords: [],
             pushMonitor: {
                 showPushExamples: false,
@@ -641,6 +678,74 @@ export default {
         testNotification() {
             this.$root.getSocket().emit("testNotification", this.monitor.id);
             this.$root.toastSuccess("Test notification is requested.");
+        },
+
+        /**
+         * Export this monitor's status-change history (the same events
+         * shown in the table below) as a CSV, for a given range.
+         * @param {"today"|"month"|"custom"} mode Which range to export
+         * @returns {void}
+         */
+        exportLogs(mode) {
+            const now = dayjs();
+            let startDate;
+            let endDate;
+
+            if (mode === "today") {
+                startDate = now.format("YYYY-MM-DD");
+                endDate = startDate;
+            } else if (mode === "month") {
+                startDate = now.startOf("month").format("YYYY-MM-DD");
+                endDate = now.endOf("month").format("YYYY-MM-DD");
+            } else {
+                startDate = this.exportStartDate;
+                endDate = this.exportEndDate;
+            }
+
+            const startUTC = this.$root.toUTC(`${startDate} 00:00:00`);
+            const endUTC = this.$root.toUTC(`${endDate} 23:59:59`);
+
+            this.exporting = true;
+            this.$root.getSocket().emit("exportMonitorLogs", this.monitor.id, startUTC, endUTC, (res) => {
+                this.exporting = false;
+
+                if (!res.ok) {
+                    this.$root.toastError(res.msg);
+                    return;
+                }
+                if (res.data.length === 0) {
+                    this.$root.toastError("exportLogsEmpty");
+                    return;
+                }
+
+                const statusLabels = { 0: "Down", 1: "Up", 2: "Pending", 3: "Maintenance" };
+                const header = ["status", "datetime", "message", "ping_ms", "duration_s"];
+                const rows = res.data.map((beat) => [
+                    statusLabels[beat.status] || "Unknown",
+                    this.$root.datetime(beat.time),
+                    beat.msg || "",
+                    beat.ping ?? "",
+                    beat.duration ?? "",
+                ]);
+                const csv = [header, ...rows].map((row) => row.map(csvEscape).join(",")).join("\r\n");
+
+                const blob = new Blob([csv], { type: "text/csv" });
+                // window.URL, not the whatwg-url import above shadowing this
+                // scope - that polyfill has no createObjectURL.
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${this.monitor.name}-logs-${startDate}-to-${endDate}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+
+                if (res.truncated) {
+                    this.$root.toastError("exportLogsTruncated");
+                }
+                this.showExportPanel = false;
+            });
         },
 
         /**
@@ -867,6 +972,30 @@ export default {
 
 .form-check {
     margin-top: 16px;
+}
+
+.export-logs-panel {
+    padding: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.export-logs-quick {
+    display: flex;
+    gap: 8px;
+}
+
+.export-logs-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+
+    input[type="date"] {
+        width: auto;
+    }
 }
 
 @media (max-width: 767px) {

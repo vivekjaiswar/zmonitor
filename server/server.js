@@ -164,7 +164,7 @@ const EMPLOYEE_ALLOWED_EVENTS = new Set([
     "loginByToken", "login", "logout", "verifyToken", "twoFAStatus", "needSetup",
     "prepare2FA", "save2FA", "disable2FA", "changePassword",
     "getMonitorList", "getMonitor", "getMonitorBeats", "getMonitorChartData",
-    "monitorImportantHeartbeatListCount", "monitorImportantHeartbeatListPaged",
+    "monitorImportantHeartbeatListCount", "monitorImportantHeartbeatListPaged", "exportMonitorLogs",
     "getTags", "getWebpushVapidPublicKey", "initServerTimezone", "disconnectOtherSocketClients",
 ]);
 
@@ -1832,6 +1832,51 @@ let needSetup = false;
                 callback({
                     ok: true,
                     data: list,
+                });
+            } catch (e) {
+                callback({
+                    ok: false,
+                    msg: e.message,
+                });
+            }
+        });
+
+        // Export a monitor's status-change history (uptime/downtime events,
+        // same data as the Events table above) for an absolute date range,
+        // for the "download logs for this day/month/range" feature. Capped
+        // to keep an accidentally huge range from blocking the event loop -
+        // important events are sparse (status transitions only), so this
+        // limit is generous for any realistic single-monitor export.
+        socket.on("exportMonitorLogs", async (monitorID, startDate, endDate, callback) => {
+            const EXPORT_ROW_LIMIT = 20000;
+            try {
+                checkLogin(socket);
+
+                if (!(await Monitor.userCanAccess(socket.userID, monitorID))) {
+                    throw new Error("You do not have access to this monitor.");
+                }
+                if (!startDate || !endDate) {
+                    throw new Error("Invalid date range.");
+                }
+
+                const list = await R.getAll(
+                    `
+                    SELECT status, time, msg, ping, duration
+                    FROM heartbeat
+                    WHERE monitor_id = ?
+                      AND important = 1
+                      AND time >= ?
+                      AND time <= ?
+                    ORDER BY time ASC
+                    LIMIT ?
+                `,
+                    [monitorID, startDate, endDate, EXPORT_ROW_LIMIT]
+                );
+
+                callback({
+                    ok: true,
+                    data: list,
+                    truncated: list.length >= EXPORT_ROW_LIMIT,
                 });
             } catch (e) {
                 callback({
