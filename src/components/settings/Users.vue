@@ -22,18 +22,23 @@
                         {{ user.active ? $t("Active") : $t("Inactive") }}
                     </div>
                     <div class="tags">
-                        <Tag
-                            v-for="tagID in user.tagIDs"
-                            :key="tagID"
-                            :item="tagDisplayItem(tagID)"
-                            size="sm"
-                        />
-                        <span v-if="user.tagIDs.length === 0 && user.monitorIDs.length === 0" class="form-text">
-                            {{ $t("noTagAccessGranted") }}
+                        <span v-if="user.fullMonitorAccess" class="badge bg-primary">
+                            {{ $t("fullMonitorAccess") }}
                         </span>
-                        <span v-if="user.monitorIDs.length > 0" class="form-text individual-monitors-badge">
-                            {{ $t("individualMonitorsGrantedCount", user.monitorIDs.length) }}
-                        </span>
+                        <template v-else>
+                            <Tag
+                                v-for="tagID in user.tagIDs"
+                                :key="tagID"
+                                :item="tagDisplayItem(tagID)"
+                                size="sm"
+                            />
+                            <span v-if="user.tagIDs.length === 0 && user.monitorIDs.length === 0" class="form-text">
+                                {{ $t("noTagAccessGranted") }}
+                            </span>
+                            <span v-if="user.monitorIDs.length > 0" class="form-text individual-monitors-badge">
+                                {{ $t("individualMonitorsGrantedCount", user.monitorIDs.length) }}
+                            </span>
+                        </template>
                     </div>
                 </div>
             </div>

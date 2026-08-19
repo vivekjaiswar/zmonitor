@@ -179,6 +179,8 @@
     "noTagAccessGranted": "No location access granted yet",
     "deleteEmployeeMsg": "Are you sure you want to delete this employee account?",
     "leaveBlankToKeepPassword": "Leave blank to keep current password",
+    "fullMonitorAccess": "Full read-only access",
+    "fullMonitorAccessDesc": "This employee sees every monitor — current and future — instead of only specific locations/monitors granted below. They still cannot add, edit, delete, pause, or resume anything.",
     "employeeTagAccess": "Location Access",
     "employeeTagAccessDesc": "The employee will only see monitors carrying at least one of the locations checked below.",
     "noTagsYet": "No locations exist yet. Create one in Settings → Location first, then come back here to grant access to it.",

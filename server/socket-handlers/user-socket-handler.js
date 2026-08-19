@@ -51,7 +51,9 @@ module.exports.userSocketHandler = (socket) => {
         try {
             checkAdmin(socket);
 
-            const users = await R.getAll("SELECT id, username, active, role FROM `user` ORDER BY username");
+            const users = await R.getAll(
+                "SELECT id, username, active, role, full_monitor_access FROM `user` ORDER BY username"
+            );
             const tagGrants = await R.getAll("SELECT user_id, tag_id FROM user_tag_access");
             const monitorGrants = await R.getAll("SELECT user_id, monitor_id FROM user_monitor_access");
 
@@ -60,6 +62,7 @@ module.exports.userSocketHandler = (socket) => {
                 username: user.username,
                 active: !!user.active,
                 role: user.role || "admin",
+                fullMonitorAccess: !!user.full_monitor_access,
                 tagIDs: tagGrants.filter((grant) => grant.user_id === user.id).map((grant) => grant.tag_id),
                 monitorIDs: monitorGrants
                     .filter((grant) => grant.user_id === user.id)
@@ -101,14 +104,17 @@ module.exports.userSocketHandler = (socket) => {
             bean.password = await passwordHash.generate(data.password);
             bean.role = "employee";
             bean.active = true;
+            bean.full_monitor_access = !!data.fullMonitorAccess;
             await R.store(bean);
 
-            if (Array.isArray(data.tagIDs) && data.tagIDs.length > 0) {
-                await setUserTagAccess(bean.id, data.tagIDs);
-            }
+            if (!data.fullMonitorAccess) {
+                if (Array.isArray(data.tagIDs) && data.tagIDs.length > 0) {
+                    await setUserTagAccess(bean.id, data.tagIDs);
+                }
 
-            if (Array.isArray(data.monitorIDs) && data.monitorIDs.length > 0) {
-                await setUserMonitorAccess(bean.id, data.monitorIDs);
+                if (Array.isArray(data.monitorIDs) && data.monitorIDs.length > 0) {
+                    await setUserMonitorAccess(bean.id, data.monitorIDs);
+                }
             }
 
             log.info("auth", `Admin ${socket.userID} created employee account ${username} (id ${bean.id})`);
@@ -145,6 +151,10 @@ module.exports.userSocketHandler = (socket) => {
                 bean.active = data.active;
             }
 
+            if (typeof data.fullMonitorAccess === "boolean") {
+                bean.full_monitor_access = data.fullMonitorAccess;
+            }
+
             if (data.password) {
                 if (passwordStrength(data.password).value === "Too weak") {
                     throw new TranslatableError("passwordTooWeak");
@@ -154,12 +164,14 @@ module.exports.userSocketHandler = (socket) => {
 
             await R.store(bean);
 
-            if (Array.isArray(data.tagIDs)) {
-                await setUserTagAccess(bean.id, data.tagIDs);
-            }
+            if (!bean.full_monitor_access) {
+                if (Array.isArray(data.tagIDs)) {
+                    await setUserTagAccess(bean.id, data.tagIDs);
+                }
 
-            if (Array.isArray(data.monitorIDs)) {
-                await setUserMonitorAccess(bean.id, data.monitorIDs);
+                if (Array.isArray(data.monitorIDs)) {
+                    await setUserMonitorAccess(bean.id, data.monitorIDs);
+                }
             }
 
             callback({

@@ -46,34 +46,47 @@
                             <label class="form-check-label" for="user-active">{{ $t("Active") }}</label>
                         </div>
 
-                        <div class="mb-1">
-                            <label class="form-label">{{ $t("employeeTagAccess") }}</label>
-                            <div class="form-text mb-2">{{ $t("employeeTagAccessDesc") }}</div>
-
-                            <div v-if="tagList.length === 0" class="form-text">
-                                {{ $t("noTagsYet") }}
-                            </div>
-
-                            <div v-for="tag in tagList" :key="tag.id" class="form-check tag-option">
-                                <input
-                                    :id="`user-tag-${tag.id}`"
-                                    v-model="user.tagIDs"
-                                    class="form-check-input"
-                                    type="checkbox"
-                                    :value="tag.id"
-                                />
-                                <label class="form-check-label" :for="`user-tag-${tag.id}`">
-                                    <Tag :item="{ name: tag.name, color: tag.color }" size="sm" />
-                                </label>
-                            </div>
+                        <div class="form-check mb-3 full-access-option">
+                            <input
+                                id="user-full-access"
+                                v-model="user.fullMonitorAccess"
+                                class="form-check-input"
+                                type="checkbox"
+                            />
+                            <label class="form-label" for="user-full-access">{{ $t("fullMonitorAccess") }}</label>
+                            <div class="form-text">{{ $t("fullMonitorAccessDesc") }}</div>
                         </div>
 
-                        <div class="mb-1 mt-3">
-                            <label class="form-label">{{ $t("employeeMonitorAccess") }}</label>
-                            <div class="form-text mb-2">{{ $t("employeeMonitorAccessDesc") }}</div>
+                        <template v-if="!user.fullMonitorAccess">
+                            <div class="mb-1">
+                                <label class="form-label">{{ $t("employeeTagAccess") }}</label>
+                                <div class="form-text mb-2">{{ $t("employeeTagAccessDesc") }}</div>
 
-                            <MonitorMultiSelect v-model="user.monitorIDs" />
-                        </div>
+                                <div v-if="tagList.length === 0" class="form-text">
+                                    {{ $t("noTagsYet") }}
+                                </div>
+
+                                <div v-for="tag in tagList" :key="tag.id" class="form-check tag-option">
+                                    <input
+                                        :id="`user-tag-${tag.id}`"
+                                        v-model="user.tagIDs"
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        :value="tag.id"
+                                    />
+                                    <label class="form-check-label" :for="`user-tag-${tag.id}`">
+                                        <Tag :item="{ name: tag.name, color: tag.color }" size="sm" />
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="mb-1 mt-3">
+                                <label class="form-label">{{ $t("employeeMonitorAccess") }}</label>
+                                <div class="form-text mb-2">{{ $t("employeeMonitorAccessDesc") }}</div>
+
+                                <MonitorMultiSelect v-model="user.monitorIDs" />
+                            </div>
+                        </template>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-primary" type="submit" :disabled="processing">
@@ -109,6 +122,7 @@ export default {
                 username: "",
                 password: "",
                 active: true,
+                fullMonitorAccess: false,
                 tagIDs: [],
                 monitorIDs: [],
             },
@@ -132,6 +146,7 @@ export default {
                 username: "",
                 password: "",
                 active: true,
+                fullMonitorAccess: false,
                 tagIDs: [],
                 monitorIDs: [],
             };
@@ -151,6 +166,7 @@ export default {
                 username: existingUser.username,
                 password: "",
                 active: existingUser.active,
+                fullMonitorAccess: !!existingUser.fullMonitorAccess,
                 tagIDs: [...existingUser.tagIDs],
                 monitorIDs: [...existingUser.monitorIDs],
             };

@@ -47,7 +47,6 @@ const { R } = require("redbean-node");
 const { BeanModel } = require("redbean-node/dist/bean-model");
 const { Notification } = require("../notification");
 const { Proxy } = require("../proxy");
-const User = require("./user");
 const { demoMode } = require("../config");
 const version = require("../../package.json").version;
 const apicache = require("../modules/apicache");
@@ -1362,14 +1361,17 @@ class Monitor extends BeanModel {
      * Build a WHERE-fragment (and matching params) selecting the IDs of monitors
      * a given user is allowed to see. Admins see everything they own (today, in
      * practice, every monitor - there is only ever one owner). Employees only see
-     * monitors covered by an explicit grant or a granted tag.
+     * monitors covered by an explicit grant or a granted tag, unless they hold
+     * full read-only access, in which case they see everything an admin does
+     * (still blocked from any mutation by checkAdmin/EMPLOYEE_ALLOWED_EVENTS).
      * @param {number} userID ID of the requesting user
      * @returns {Promise<{sql: string, params: Array}>} subquery SQL and its params
      */
     static async getAccessibleMonitorIdsSQL(userID) {
-        const role = await User.getRole(userID);
+        const user = await R.getRow("SELECT role, full_monitor_access FROM `user` WHERE id = ?", [userID]);
+        const role = user?.role || "admin";
 
-        if (role === "employee") {
+        if (role === "employee" && !user.full_monitor_access) {
             return {
                 sql: `
                     SELECT monitor_id FROM user_monitor_access WHERE user_id = ?
@@ -1378,6 +1380,16 @@ class Monitor extends BeanModel {
                     WHERE mt.tag_id IN (SELECT tag_id FROM user_tag_access WHERE user_id = ?)
                 `,
                 params: [userID, userID],
+            };
+        }
+
+        if (role === "employee") {
+            // Full read-only access: employees don't own monitors themselves
+            // (there's exactly one owner per self-hosted install), so "see
+            // everything" means every monitor that exists, not user_id = self.
+            return {
+                sql: "SELECT id FROM monitor",
+                params: [],
             };
         }
 
