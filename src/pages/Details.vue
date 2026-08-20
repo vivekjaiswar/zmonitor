@@ -145,11 +145,14 @@
 
             <div v-if="showExportPanel" class="shadow-box export-logs-panel my-3">
                 <div class="export-logs-quick">
-                    <button class="btn btn-outline-normal" :disabled="exporting" @click="exportLogs('today')">
-                        {{ $t("Today") }}
+                    <button class="btn btn-outline-normal" :disabled="exporting" @click="exportLogs('1d')">
+                        {{ $t("Last 1 Day") }}
                     </button>
-                    <button class="btn btn-outline-normal" :disabled="exporting" @click="exportLogs('month')">
-                        {{ $t("This Month") }}
+                    <button class="btn btn-outline-normal" :disabled="exporting" @click="exportLogs('7d')">
+                        {{ $t("Last 7 Days") }}
+                    </button>
+                    <button class="btn btn-outline-normal" :disabled="exporting" @click="exportLogs('30d')">
+                        {{ $t("Last 30 Days") }}
                     </button>
                 </div>
                 <div class="export-logs-custom">
@@ -683,27 +686,29 @@ export default {
         /**
          * Export this monitor's status-change history (the same events
          * shown in the table below) as a CSV, for a given range.
-         * @param {"today"|"month"|"custom"} mode Which range to export
+         * @param {"1d"|"7d"|"30d"|"custom"} mode Which range to export
          * @returns {void}
          */
         exportLogs(mode) {
             const now = dayjs();
-            let startDate;
-            let endDate;
+            let startMoment;
+            let endMoment = now;
 
-            if (mode === "today") {
-                startDate = now.format("YYYY-MM-DD");
-                endDate = startDate;
-            } else if (mode === "month") {
-                startDate = now.startOf("month").format("YYYY-MM-DD");
-                endDate = now.endOf("month").format("YYYY-MM-DD");
+            if (mode === "1d") {
+                startMoment = now.subtract(1, "day");
+            } else if (mode === "7d") {
+                startMoment = now.subtract(7, "day");
+            } else if (mode === "30d") {
+                startMoment = now.subtract(30, "day");
             } else {
-                startDate = this.exportStartDate;
-                endDate = this.exportEndDate;
+                startMoment = dayjs(`${this.exportStartDate} 00:00:00`);
+                endMoment = dayjs(`${this.exportEndDate} 23:59:59`);
             }
 
-            const startUTC = this.$root.toUTC(`${startDate} 00:00:00`);
-            const endUTC = this.$root.toUTC(`${endDate} 23:59:59`);
+            const startUTC = this.$root.toUTC(startMoment.format("YYYY-MM-DD HH:mm:ss"));
+            const endUTC = this.$root.toUTC(endMoment.format("YYYY-MM-DD HH:mm:ss"));
+            const filenameStart = startMoment.format("YYYY-MM-DD");
+            const filenameEnd = endMoment.format("YYYY-MM-DD");
 
             this.exporting = true;
             this.$root.getSocket().emit("exportMonitorLogs", this.monitor.id, startUTC, endUTC, (res) => {
@@ -735,7 +740,7 @@ export default {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = `${this.monitor.name}-logs-${startDate}-to-${endDate}.csv`;
+                a.download = `${this.monitor.name}-logs-${filenameStart}-to-${filenameEnd}.csv`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
