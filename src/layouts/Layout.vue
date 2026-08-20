@@ -51,14 +51,26 @@
             <div class="app-shell">
                 <aside v-if="$root.loggedIn && !sidebarHidden" class="app-sidebar">
                 <nav class="sidebar-nav">
-                    <router-link to="/map" class="sidebar-link">
-                        <font-awesome-icon icon="map-marker-alt" />
-                        {{ $t("Network Map") }}
-                    </router-link>
-                    <router-link to="/dashboard" class="sidebar-link">
-                        <font-awesome-icon icon="tachometer-alt" />
-                        {{ $t("Dashboard") }}
-                    </router-link>
+                    <template v-if="$root.info.dashboardFirst === false">
+                        <router-link to="/map" class="sidebar-link">
+                            <font-awesome-icon icon="map-marker-alt" />
+                            {{ $t("Network Map") }}
+                        </router-link>
+                        <router-link to="/dashboard" class="sidebar-link">
+                            <font-awesome-icon icon="tachometer-alt" />
+                            {{ $t("Dashboard") }}
+                        </router-link>
+                    </template>
+                    <template v-else>
+                        <router-link to="/dashboard" class="sidebar-link">
+                            <font-awesome-icon icon="tachometer-alt" />
+                            {{ $t("Dashboard") }}
+                        </router-link>
+                        <router-link to="/map" class="sidebar-link">
+                            <font-awesome-icon icon="map-marker-alt" />
+                            {{ $t("Network Map") }}
+                        </router-link>
+                    </template>
                     <router-link to="/manage-status-page" class="sidebar-link">
                         <font-awesome-icon icon="stream" />
                         {{ $t("Status Pages") }}

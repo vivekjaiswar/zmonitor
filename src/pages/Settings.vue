@@ -180,6 +180,10 @@ export default {
                     this.settings.entryPage = "dashboard";
                 }
 
+                if (this.settings.dashboardFirst === undefined) {
+                    this.settings.dashboardFirst = true;
+                }
+
                 if (this.settings.nscd === undefined) {
                     this.settings.nscd = true;
                 }

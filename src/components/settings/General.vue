@@ -113,6 +113,41 @@
                 </div>
             </div>
 
+            <!-- Sidebar Order -->
+            <div class="mb-4">
+                <label class="form-label">{{ $t("Sidebar Order") }}</label>
+
+                <div class="form-check">
+                    <input
+                        id="dashboardFirstYes"
+                        v-model="settings.dashboardFirst"
+                        class="form-check-input"
+                        type="radio"
+                        name="dashboardFirst"
+                        :value="true"
+                        required
+                    />
+                    <label class="form-check-label" for="dashboardFirstYes">
+                        {{ $t("Dashboard") }}, {{ $t("Network Map") }}
+                    </label>
+                </div>
+
+                <div class="form-check">
+                    <input
+                        id="dashboardFirstNo"
+                        v-model="settings.dashboardFirst"
+                        class="form-check-input"
+                        type="radio"
+                        name="dashboardFirst"
+                        :value="false"
+                        required
+                    />
+                    <label class="form-check-label" for="dashboardFirstNo">
+                        {{ $t("Network Map") }}, {{ $t("Dashboard") }}
+                    </label>
+                </div>
+            </div>
+
             <!-- Primary Base URL -->
             <div class="mb-4">
                 <label class="form-label" for="primaryBaseURL">

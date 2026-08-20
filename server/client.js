@@ -150,6 +150,7 @@ async function sendInfo(socket, hideVersion = false) {
         customAppName: await setting("customAppName"),
         customLogoUrl: await setting("customLogoUrl"),
         customPrimaryColor: await setting("customPrimaryColor"),
+        dashboardFirst: await setting("dashboardFirst"),
     };
     if (!hideVersion) {
         info.version = checkVersion.version;
