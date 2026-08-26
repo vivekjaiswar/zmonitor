@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
+const { promisify } = require("util");
 
 const PORT = process.env.LICENSE_SERVER_PORT || 4001;
 const DB_PATH = process.env.LICENSE_SERVER_DB || path.join(__dirname, "license.db");
@@ -34,8 +35,9 @@ db.serialize(() => {
     db.run("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)");
 });
 
-const dbGet = (sql, params = []) => new Promise((resolve, reject) => db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row))));
-const dbAll = (sql, params = []) => new Promise((resolve, reject) => db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows))));
+const dbGet = promisify(db.get.bind(db));
+const dbAll = promisify(db.all.bind(db));
+// dbRun stays hand-rolled: it needs the callback's `this` (lastID/changes), which promisify can't expose.
 const dbRun = (sql, params = []) =>
     new Promise((resolve, reject) => db.run(sql, params, function (err) { err ? reject(err) : resolve(this); }));
 
