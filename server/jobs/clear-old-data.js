@@ -48,6 +48,9 @@ const clearOldData = async () => {
             // stat_daily
             await R.exec("DELETE FROM stat_daily WHERE timestamp < ? ", [timestamp]);
 
+            // interface_sample (SNMP interface bandwidth samples)
+            await R.exec("DELETE FROM interface_sample WHERE timestamp < ?", [timestamp]);
+
             if (Database.dbConfig.type === "sqlite") {
                 await R.exec("PRAGMA optimize;");
             }

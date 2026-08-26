@@ -152,6 +152,7 @@ const MONITOR_TABLE_COLUMNS = new Set([
     "save_response", "save_error_response", "response_max_length", "system_service_name", "subtype", "location",
     "protocol", "snmp_v3_username", "expected_tls_alert", "screenshot_delay", "bearer_token", "gamedig_token",
     "ntp_stratum_threshold", "ntp_time_offset_threshold", "ntp_root_dispersion_threshold", "lat", "lng",
+    "snmp_mode",
 ]);
 
 // Socket events an "employee" role account is allowed to call. Everything else is
@@ -163,7 +164,7 @@ const MONITOR_TABLE_COLUMNS = new Set([
 const EMPLOYEE_ALLOWED_EVENTS = new Set([
     "loginByToken", "login", "logout", "verifyToken", "twoFAStatus", "needSetup",
     "prepare2FA", "save2FA", "disable2FA", "changePassword",
-    "getMonitorList", "getMonitor", "getMonitorBeats", "getMonitorChartData",
+    "getMonitorList", "getMonitor", "getMonitorBeats", "getMonitorChartData", "getMonitorInterfaceStats",
     "monitorImportantHeartbeatListCount", "monitorImportantHeartbeatListPaged", "exportMonitorLogs",
     "getTags", "getWebpushVapidPublicKey", "initServerTimezone", "disconnectOtherSocketClients",
 ]);
@@ -1316,6 +1317,8 @@ let needSetup = false;
                 bean.smtpSecurity = monitor.smtpSecurity;
                 bean.snmpVersion = monitor.snmpVersion;
                 bean.snmpOid = monitor.snmpOid;
+                bean.snmp_v3_username = monitor.snmpV3Username;
+                bean.snmpMode = monitor.snmpMode;
                 bean.jsonPathOperator = monitor.jsonPathOperator;
                 bean.retry_only_on_status_code_failure = Boolean(monitor.retryOnlyOnStatusCodeFailure);
                 bean.timeout = monitor.timeout;
@@ -1461,6 +1464,40 @@ let needSetup = false;
                 callback({
                     ok: true,
                     data: list,
+                });
+            } catch (e) {
+                callback({
+                    ok: false,
+                    msg: e.message,
+                });
+            }
+        });
+
+        // Get interfaces + recent bandwidth samples for an SNMP interfaces-mode monitor
+        socket.on("getMonitorInterfaceStats", async (monitorID, hours, callback) => {
+            try {
+                checkLogin(socket);
+
+                if (!(await Monitor.userCanAccess(socket.userID, monitorID))) {
+                    throw new Error("You do not have access to this monitor.");
+                }
+
+                const interfaces = await R.getAll(
+                    "SELECT * FROM monitor_interface WHERE monitor_id = ? ORDER BY if_index ASC",
+                    [monitorID]
+                );
+
+                const since = dayjs().subtract(hours || 24, "hour").unix();
+                for (const iface of interfaces) {
+                    iface.samples = await R.getAll(
+                        "SELECT timestamp, in_bps, out_bps, in_errors, out_errors FROM interface_sample WHERE interface_id = ? AND timestamp > ? ORDER BY timestamp ASC",
+                        [iface.id, since]
+                    );
+                }
+
+                callback({
+                    ok: true,
+                    data: interfaces,
                 });
             } catch (e) {
                 callback({

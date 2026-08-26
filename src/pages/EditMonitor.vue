@@ -736,6 +736,15 @@
 
                             <!-- SNMP Monitor Type -->
                             <div v-if="monitor.type === 'snmp'" class="my-3">
+                                <label for="snmp_mode" class="form-label">{{ $t("SNMP Mode") }}</label>
+                                <select id="snmp_mode" v-model="monitor.snmpMode" class="form-select">
+                                    <option value="oid">{{ $t("snmpModeOid") }}</option>
+                                    <option value="interfaces">{{ $t("snmpModeInterfaces") }}</option>
+                                </select>
+                                <div class="form-text">{{ $t("snmpModeHelptext") }}</div>
+                            </div>
+
+                            <div v-if="monitor.type === 'snmp'" class="my-3">
                                 <label for="snmp_community_string" class="form-label">
                                     {{ $t("Community String") }}
                                 </label>
@@ -751,7 +760,7 @@
                                 <div class="form-text">{{ $t("snmpCommunityStringHelptext") }}</div>
                             </div>
 
-                            <div v-if="monitor.type === 'snmp'" class="my-3">
+                            <div v-if="monitor.type === 'snmp' && monitor.snmpMode !== 'interfaces'" class="my-3">
                                 <label for="snmp_oid" class="form-label">{{ $t("OID (Object Identifier)") }}</label>
                                 <input
                                     id="snmp_oid"
@@ -913,8 +922,14 @@
                             </template>
 
                             <!-- Json Query -->
-                            <!-- For Json Query / SNMP -->
-                            <div v-if="monitor.type === 'json-query' || monitor.type === 'snmp'" class="my-3">
+                            <!-- For Json Query / SNMP (single-OID mode only) -->
+                            <div
+                                v-if="
+                                    monitor.type === 'json-query' ||
+                                    (monitor.type === 'snmp' && monitor.snmpMode !== 'interfaces')
+                                "
+                                class="my-3"
+                            >
                                 <div class="my-2">
                                     <label for="jsonPath" class="form-label mb-0">
                                         {{ $t("Json Query Expression") }}
@@ -3792,6 +3807,11 @@ message HealthCheckResponse {
             // Set default SNMP version
             if (!this.monitor.snmpVersion) {
                 this.monitor.snmpVersion = "2c";
+            }
+
+            // Set default SNMP mode
+            if (!this.monitor.snmpMode) {
+                this.monitor.snmpMode = "oid";
             }
 
             // Set default jsonPath

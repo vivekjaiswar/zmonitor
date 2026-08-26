@@ -337,6 +337,12 @@
                 </div>
             </div>
 
+            <!-- Interface Bandwidth (SNMP interfaces mode) -->
+            <div v-if="monitor.type === 'snmp' && monitor.snmpMode === 'interfaces'" class="shadow-box big-padding">
+                <h4 class="mb-3">{{ $t("Interfaces") }}</h4>
+                <InterfaceStats :monitor-id="monitor.id" />
+            </div>
+
             <!-- Screenshot -->
             <div v-if="monitor.type === 'real-browser'" class="shadow-box">
                 <div class="row">
@@ -475,6 +481,7 @@ import CountUp from "../components/CountUp.vue";
 import Uptime from "../components/Uptime.vue";
 import Pagination from "v-pagination-3";
 const PingChart = defineAsyncComponent(() => import("../components/PingChart.vue"));
+const InterfaceStats = defineAsyncComponent(() => import("../components/InterfaceStats.vue"));
 import Tag from "../components/Tag.vue";
 import { csvEscape } from "../util-csv";
 import dayjs from "dayjs";
@@ -502,6 +509,7 @@ export default {
         Status,
         Pagination,
         PingChart,
+        InterfaceStats,
         Tag,
         CertificateInfo,
         PrismEditor,
