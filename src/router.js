@@ -17,6 +17,7 @@ import ManageStatusPage from "./pages/ManageStatusPage.vue";
 import AddStatusPage from "./pages/AddStatusPage.vue";
 import NotFound from "./pages/NotFound.vue";
 import DockerHosts from "./components/settings/Docker.vue";
+import SnmpDiscovery from "./components/settings/SnmpDiscovery.vue";
 import ManageMaintenance from "./pages/ManageMaintenance.vue";
 import APIKeys from "./components/settings/APIKeys.vue";
 import SetupDatabase from "./pages/SetupDatabase.vue";
@@ -135,6 +136,10 @@ const routes = [
                             {
                                 path: "docker-hosts",
                                 component: DockerHosts,
+                            },
+                            {
+                                path: "snmp-discovery",
+                                component: SnmpDiscovery,
                             },
                             {
                                 path: "remote-browsers",

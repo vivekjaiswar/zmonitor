@@ -115,6 +115,9 @@ export default {
                 "docker-hosts": {
                     title: this.$t("Docker Hosts"),
                 },
+                "snmp-discovery": {
+                    title: this.$t("SNMP Discovery"),
+                },
                 "remote-browsers": {
                     title: this.$t("Remote Browsers"),
                 },

@@ -103,6 +103,8 @@ log.debug("server", "Importing Monitor");
 const Monitor = require("./model/monitor");
 const User = require("./model/user");
 const { lookupIpLocation } = require("./util-geoip");
+const { expandCidr } = require("./util-cidr");
+const { scanSubnet } = require("./util-snmp-discovery");
 
 log.debug("server", "Importing Settings");
 const {
@@ -804,85 +806,13 @@ let needSetup = false;
         socket.on("add", async (monitor, callback) => {
             try {
                 checkLogin(socket);
-                let bean = R.dispense("monitor");
-
-                let notificationIDList = monitor.notificationIDList;
-                delete monitor.notificationIDList;
-
-                // Ensure status code ranges are strings
-                if (!monitor.accepted_statuscodes.every((code) => typeof code === "string")) {
-                    throw new Error("Accepted status codes are not all strings");
-                }
-                monitor.accepted_statuscodes_json = JSON.stringify(monitor.accepted_statuscodes);
-                delete monitor.accepted_statuscodes;
-
-                monitor.kafkaProducerBrokers = JSON.stringify(monitor.kafkaProducerBrokers);
-                monitor.kafkaProducerSaslOptions = JSON.stringify(monitor.kafkaProducerSaslOptions);
-
-                monitor.conditions = JSON.stringify(monitor.conditions);
-
-                monitor.rabbitmqNodes = JSON.stringify(monitor.rabbitmqNodes);
-
-                /*
-                 * List of frontend-only properties that should not be saved to the database.
-                 * Should clean up before saving to the database.
-                 */
-                const frontendOnlyProperties = [
-                    "humanReadableInterval",
-                    "globalpingdnsresolvetypeoptions",
-                    "responsecheck",
-                ];
-                for (const prop of frontendOnlyProperties) {
-                    if (prop in monitor) {
-                        delete monitor[prop];
-                    }
-                }
-
-                bean.import(monitor);
-                // Map camelCase frontend property to snake_case database column
-                if (monitor.retryOnlyOnStatusCodeFailure !== undefined) {
-                    bean.retry_only_on_status_code_failure = monitor.retryOnlyOnStatusCodeFailure;
-                }
-                bean.user_id = socket.userID;
-
-                // Auto-locate: if the user didn't set map coordinates themselves,
-                // try to derive them from the monitor's hostname/IP so the map
-                // is populated without requiring manual lookup for every monitor.
-                if (bean.lat === null || bean.lat === undefined) {
-                    let targetHost = bean.hostname;
-                    if (!targetHost && bean.url) {
-                        try {
-                            targetHost = new URL(bean.url).hostname;
-                        } catch (_) {
-                            targetHost = null;
-                        }
-                    }
-                    const location = targetHost ? await lookupIpLocation(targetHost) : null;
-                    if (location) {
-                        bean.lat = location.lat;
-                        bean.lng = location.lng;
-                    }
-                }
-
-                bean.validate();
-
-                await R.store(bean);
-
-                await updateMonitorNotification(bean.id, notificationIDList);
-
-                await server.sendUpdateMonitorIntoList(socket, bean.id);
-
-                if (monitor.active !== false) {
-                    await startMonitor(socket.userID, bean.id);
-                }
-
-                log.info("monitor", `Added Monitor: ${bean.id} User ID: ${socket.userID}`);
+                const monitorID = await addMonitorFromPayload(monitor, socket);
 
                 callback({
                     ok: true,
                     msg: "successAdded",
                     msgi18n: true,
-                    monitorID: bean.id,
+                    monitorID,
                 });
             } catch (e) {
                 log.error("monitor", `Error adding Monitor: ${monitor.id} User ID: ${socket.userID}`);
@@ -1185,6 +1115,111 @@ let needSetup = false;
             } catch (e) {
                 autoLocateAllRunning = false;
                 log.error("monitor", `Error in autoLocateAllMonitors: ${e.message}`);
+            }
+        });
+
+        // Scan a subnet for SNMP-capable devices (protocol-scoped, on-demand -
+        // not a standing discovery daemon). Runs server-side with progress
+        // broadcast, same reasoning as autoLocateAllMonitors above.
+        socket.on("scanSnmpSubnet", async (data, callback) => {
+            try {
+                checkAdmin(socket);
+
+                if (snmpScanRunning) {
+                    callback({ ok: false, msg: "A subnet scan is already running." });
+                    return;
+                }
+
+                const ips = expandCidr(data.cidr, SNMP_SCAN_MAX_HOSTS);
+
+                callback({ ok: true, total: ips.length });
+
+                snmpScanRunning = true;
+                try {
+                    const found = await scanSubnet(
+                        ips,
+                        {
+                            community: data.community,
+                            version: data.version,
+                            port: data.port,
+                            timeoutMs: (data.timeout || 1.5) * 1000,
+                        },
+                        SNMP_SCAN_CONCURRENCY,
+                        (done, total) => io.to(socket.userID).emit("snmpScanProgress", { done, total })
+                    );
+
+                    const hostnames = found.map((d) => d.ip);
+                    const existing =
+                        hostnames.length > 0
+                            ? await R.getAll(
+                                  `SELECT hostname FROM monitor WHERE hostname IN (${hostnames.map(() => "?").join(",")}) AND user_id = ?`,
+                                  [...hostnames, socket.userID]
+                              )
+                            : [];
+                    const alreadyMonitored = new Set(existing.map((row) => row.hostname));
+
+                    io.to(socket.userID).emit(
+                        "snmpScanResult",
+                        found.map((device) => ({ ...device, alreadyMonitored: alreadyMonitored.has(device.ip) }))
+                    );
+                } finally {
+                    snmpScanRunning = false;
+                }
+            } catch (e) {
+                snmpScanRunning = false;
+                callback({ ok: false, msg: e.message });
+            }
+        });
+
+        // Create SNMP interface-bandwidth monitors from a reviewed list of
+        // discovered devices (see scanSnmpSubnet above). Goes through the same
+        // addMonitorFromPayload() path as the manual Add Monitor form.
+        socket.on("bulkCreateSnmpMonitors", async (data, callback) => {
+            try {
+                checkAdmin(socket);
+
+                const { devices, community, version, port } = data;
+                let created = 0;
+                let skipped = 0;
+                const errors = [];
+
+                for (const device of devices) {
+                    try {
+                        await addMonitorFromPayload(
+                            {
+                                name: device.name || device.sysName || device.ip,
+                                type: "snmp",
+                                snmpMode: "interfaces",
+                                hostname: device.ip,
+                                port: port || 161,
+                                snmpVersion: version,
+                                radiusPassword: community,
+                                interval: 60,
+                                retryInterval: 60,
+                                maxretries: 3,
+                                timeout: 10,
+                                resendInterval: 0,
+                                weight: 2000,
+                                active: true,
+                                accepted_statuscodes: ["200-299"],
+                                notificationIDList: {},
+                                kafkaProducerBrokers: [],
+                                kafkaProducerSaslOptions: {},
+                                conditions: [],
+                                rabbitmqNodes: [],
+                            },
+                            socket
+                        );
+                        created++;
+                    } catch (e) {
+                        skipped++;
+                        errors.push(`${device.ip}: ${e.message}`);
+                    }
+                }
+
+                callback({ ok: true, created, skipped, errors });
+            } catch (e) {
+                callback({ ok: false, msg: e.message });
             }
         });
 
@@ -2317,6 +2352,9 @@ async function checkOwner(userID, monitorID) {
 // Guards against multiple concurrent bulk auto-locate runs (e.g. the admin
 // clicking the button again because no progress is visible yet).
 let autoLocateAllRunning = false;
+let snmpScanRunning = false;
+const SNMP_SCAN_MAX_HOSTS = 1024;
+const SNMP_SCAN_CONCURRENCY = 20;
 
 /**
  * Look up and persist coordinates for a single monitor bean, from its
@@ -2418,6 +2456,89 @@ async function initDatabase(testMode = false) {
     }
 
     server.jwtSecret = jwtSecretBean.value;
+}
+
+/**
+ * Create a monitor from a frontend-shaped payload (the same shape the Add
+ * Monitor form submits). Shared by the "add" socket handler and bulk-create
+ * paths (e.g. SNMP subnet discovery) so both go through identical validation,
+ * auto-geolocation, notification wiring, and monitor-start behavior.
+ * @param {object} monitor Frontend-shaped monitor payload
+ * @param {Socket} socket Socket of the user creating the monitor (used for userID and list updates)
+ * @returns {Promise<number>} ID of the newly created monitor
+ */
+async function addMonitorFromPayload(monitor, socket) {
+    let bean = R.dispense("monitor");
+
+    let notificationIDList = monitor.notificationIDList;
+    delete monitor.notificationIDList;
+
+    // Ensure status code ranges are strings
+    if (!monitor.accepted_statuscodes.every((code) => typeof code === "string")) {
+        throw new Error("Accepted status codes are not all strings");
+    }
+    monitor.accepted_statuscodes_json = JSON.stringify(monitor.accepted_statuscodes);
+    delete monitor.accepted_statuscodes;
+
+    monitor.kafkaProducerBrokers = JSON.stringify(monitor.kafkaProducerBrokers);
+    monitor.kafkaProducerSaslOptions = JSON.stringify(monitor.kafkaProducerSaslOptions);
+
+    monitor.conditions = JSON.stringify(monitor.conditions);
+
+    monitor.rabbitmqNodes = JSON.stringify(monitor.rabbitmqNodes);
+
+    /*
+     * List of frontend-only properties that should not be saved to the database.
+     * Should clean up before saving to the database.
+     */
+    const frontendOnlyProperties = ["humanReadableInterval", "globalpingdnsresolvetypeoptions", "responsecheck"];
+    for (const prop of frontendOnlyProperties) {
+        if (prop in monitor) {
+            delete monitor[prop];
+        }
+    }
+
+    bean.import(monitor);
+    // Map camelCase frontend property to snake_case database column
+    if (monitor.retryOnlyOnStatusCodeFailure !== undefined) {
+        bean.retry_only_on_status_code_failure = monitor.retryOnlyOnStatusCodeFailure;
+    }
+    bean.user_id = socket.userID;
+
+    // Auto-locate: if the user didn't set map coordinates themselves,
+    // try to derive them from the monitor's hostname/IP so the map
+    // is populated without requiring manual lookup for every monitor.
+    if (bean.lat === null || bean.lat === undefined) {
+        let targetHost = bean.hostname;
+        if (!targetHost && bean.url) {
+            try {
+                targetHost = new URL(bean.url).hostname;
+            } catch (_) {
+                targetHost = null;
+            }
+        }
+        const location = targetHost ? await lookupIpLocation(targetHost) : null;
+        if (location) {
+            bean.lat = location.lat;
+            bean.lng = location.lng;
+        }
+    }
+
+    bean.validate();
+
+    await R.store(bean);
+
+    await updateMonitorNotification(bean.id, notificationIDList);
+
+    await server.sendUpdateMonitorIntoList(socket, bean.id);
+
+    if (monitor.active !== false) {
+        await startMonitor(socket.userID, bean.id);
+    }
+
+    log.info("monitor", `Added Monitor: ${bean.id} User ID: ${socket.userID}`);
+
+    return bean.id;
 }
 
 /**
