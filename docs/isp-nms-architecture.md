@@ -1,6 +1,6 @@
 # ISP-NMS Architecture (Current State + Extension Plan)
 
-Generated 2026-09-10. Companion to `docs/isp-nms-component-audit.md` and `docs/designs/isp-nms-wedge.md`. Describes what exists today and where the wedge's new pieces attach — it is not a target-state redesign; per the approved design doc, this evolves the current stack rather than replacing it.
+Generated 2026-09-10, updated 2026-09-10 (synced to the expanded production-readiness master prompt). Companion to `docs/isp-nms-component-audit.md`, `docs/designs/isp-nms-wedge.md`, and `docs/isp-nms-production-readiness.md`. Describes what exists today and where new pieces attach — it is not a target-state redesign; per the approved design doc, this evolves the current stack rather than replacing it.
 
 ## Current stack (confirmed, ground truth)
 
@@ -41,6 +41,39 @@ license-server/ (separate process) ←── periodic check-in ── server/lic
 
 There is no message queue, no separate worker process, and no distributed collector — polling, dispatch, and notification all happen in the single Node.js process, isolated per-monitor by independent `setTimeout` loops (a failure in one monitor's check does not block another's — confirmed in the audit, this already satisfies the spec's "one device failure must never crash the entire polling system" requirement).
 
+## Production-foundation additions (not gated on the discovery call)
+
+These attach to the existing pipeline independent of the wedge, and independent of each other — none require the customer/service model or dependency graph below.
+
+```
+server/jobs.js (croner)  ──┐
+Monitor.start()/beat()   ──┼──→ NEW: Self-health tracker ──→ NEW: /health endpoint
+Socket.IO connection     ──┤    (scheduler alive? beat loops    (machine-readable status;
+Database (Knex/SQLite)   ──┤     progressing? SNMP failure       self-health failures never
+Notification dispatch    ──┘     rate? DB/socket connectivity?)  stop normal monitoring)
+
+Heartbeat write (existing) ──→ NEW: last-successful vs. last-attempt
+                                 timestamps tracked separately
+                                       │
+                                       ▼
+                            NEW: STALE state (additive to
+                            UP/DOWN/PENDING/MAINTENANCE —
+                            does not redefine the existing 4)
+
+isImportantBeat() / isImportantForNotification() (existing, monitor.js)
+                                       │
+                                       ▼
+                            NEW: flap window/counter — classifies
+                            repeated transitions, suppresses
+                            notification noise, keeps monitoring
+                            active, never hides the underlying state
+```
+
+- **Self-health** is an observation layer bolted onto existing components (the job scheduler, the per-monitor beat loop, the DB/Socket.IO connections already in the request flow diagram above) — it reads their state, it doesn't sit in their critical path. A self-health check failing must never block a real monitor's `beat()` loop.
+- **Stale telemetry** is a derived concept from data already being written (heartbeat timestamps) — no new polling required, just tracking "last successful" separately from "last attempt" and computing an age.
+- **Flapping detection** hooks into the two functions that already gate notifications (`isImportantBeat`/`isImportantForNotification`) — it needs a transition-history window these functions don't currently have (they're purely two-state: previous beat vs. current beat), so this is the one piece here that's a real logic change, not just an additive read.
+- **Backup/restore verification** has no diagram entry because it's operational, not architectural — a script/procedure exercising the existing `uploadBackup` restore path against a fresh DB, not a new code path in the app itself.
+
 ## What the wedge adds (per the approved design doc, gated on the discovery call)
 
 The wedge is OLT/ONU depth + customer-impact correlation, read-only, single-vendor-to-start. Below is where each new piece attaches to the existing architecture — **none of this is authorized to build yet**; it's here so the extension points are documented before the discovery call, not invented after.
@@ -72,7 +105,8 @@ The wedge is OLT/ONU depth + customer-impact correlation, read-only, single-vend
 
 Key constraints from the design doc and this audit, carried forward as architectural ground rules for the wedge:
 
-1. **NODE/EDGE, not per-type hardcoded correlation.** The spec's own Section 6 requirement and the design doc's ceiling agree: don't write a `if (deviceType === 'OLT')` correlation function. One generic graph walk, typed nodes.
+1. **NODE/EDGE, not per-type hardcoded correlation.** The spec's own Section 6 requirement and the design doc's ceiling agree: don't write a `if (deviceType === 'OLT')` correlation function. One generic graph walk, typed nodes. NODE types: DEVICE, INTERFACE, POP, OLT, PON, ONU, SERVICE, CUSTOMER (extension points only, not built: ROUTER, SWITCH, BGP_PEER, UPLINK). EDGE types: DEPENDS_ON, CONNECTED_TO, SERVES, CONTAINS, UPSTREAM, DOWNSTREAM — directional, must support traversal both ways (walking from a failure down to affected customers, and from a customer up to what it depends on).
+1a. **Recovery is not the inverse of failure detection done carelessly.** One successful check on the root resource is not proof the whole dependency chain recovered. The correlation engine must: detect root recovery → verify it against existing monitor recovery semantics (the same bar as today, not a looser one) → recalculate dependent state → resolve the incident only when that recalculation actually supports it. Explicitly handle: root recovers while a dependent is still down (don't close the incident), a dependent recovers before its root (don't create false signal), recovery during a maintenance window, and repeated recovery events (don't storm notifications on flapping recovery — same concern as flap detection above, applied to the resolved side).
 2. **No customer/service schema to reuse — build the smallest backward-compatible extension**, per audit §0.1. This is new work, not a refactor.
 3. **Fix the credential-exposure gap (audit §0.2) before this ships**, independent of wedge scope — an ISP customer's SNMP community strings and device passwords should not be readable by every authenticated read-only NOC account, and that gap gets worse (not better) the more roles/users are added on top of it.
 4. **Read-only network boundary**: no OLT/ONU write paths (no provisioning, no config push) in this phase — matches the existing SNMP implementation, which is already GET/WALK-only with no write operations anywhere in `snmp.js`.
