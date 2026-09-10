@@ -1,7 +1,28 @@
 const { ZMonitorServer } = require("./zmonitor-server");
 const { clearOldData } = require("./jobs/clear-old-data");
 const { incrementalVacuum } = require("./jobs/incremental-vacuum");
+const { SelfHealth } = require("./self-health");
+const { log } = require("../src/util");
 const Cron = require("croner");
+
+/**
+ * Wraps a job function so its run (success or failure) is recorded for
+ * self-health reporting, without modifying the job function itself.
+ * @param {string} jobName Job name, matches the job's own `name` field
+ * @param {Function} jobFunc The job function to wrap
+ * @returns {Function} Wrapped job function
+ */
+const withHealthTracking = (jobName, jobFunc) => {
+    return async (...args) => {
+        try {
+            await jobFunc(...args);
+            SelfHealth.recordSchedulerRun(jobName, null);
+        } catch (error) {
+            log.error("jobs", `Job "${jobName}" failed: ${error.message}`);
+            SelfHealth.recordSchedulerRun(jobName, error);
+        }
+    };
+};
 
 const jobs = [
     {
@@ -32,7 +53,7 @@ const initBackgroundJobs = async function () {
                 name: job.name,
                 timezone,
             },
-            job.jobFunc
+            withHealthTracking(job.name, job.jobFunc)
         );
         job.croner = cornerJob;
     }

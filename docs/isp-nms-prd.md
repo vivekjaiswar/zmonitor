@@ -124,6 +124,8 @@ BGP/OSPF monitoring, RADIUS/AAA as infrastructure (vs. the existing login-test m
 
 **Requirement:** track, at minimum, scheduler health (is the croner job loop still running), monitor-execution health (are `beat()` loops progressing), SNMP polling failure rate, database connectivity, Socket.IO connection health, and notification-subsystem health. Expose this as an internal/API health endpoint returning machine-readable status. Self-health checks must not themselves create recursive monitoring load, and a self-health failure must never stop normal monitoring — this is an observation layer, not a gate.
 
+**Status:** partially shipped. `server/self-health.js` tracks scheduler health (wired into `server/jobs.js` without modifying the job functions themselves), DB connectivity, and an aggregate "is polling happening at all" signal (active monitor count vs. recent heartbeat count — a system-wide stall signal, not per-monitor telemetry freshness, which is §5.8's job). `GET /health` exposes it, unauthenticated, no monitor-identifying or credential data. Scheduler-tracking logic is unit-tested (5/5 passing, no DB dependency); the live endpoint, DB check, and monitoring signal are implemented but not exercised against a running server — see `docs/isp-nms-production-readiness.md` rows I2-I4. **Not yet covered:** SNMP failure-rate tracking, Socket.IO connection health, notification-subsystem health, disk/CPU/memory.
+
 ### 5.8 Stale Telemetry
 
 **Gap today** (`docs/isp-nms-component-audit.md` §9): exactly 4 heartbeat states exist (`UP/DOWN/PENDING/MAINTENANCE`), no distinction between "last successful poll" and "last poll attempt," no STALE concept.

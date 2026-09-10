@@ -188,6 +188,7 @@ const passwordHash = require("./password-hash");
 
 const { Prometheus } = require("./prometheus");
 const { UptimeCalculator } = require("./uptime-calculator");
+const { SelfHealth } = require("./self-health");
 
 const hostname = config.hostname;
 
@@ -330,6 +331,21 @@ let needSetup = false;
             runningSetup: false,
             needSetup: false,
         });
+    });
+
+    // Self-health: ZMonitor's own operational status (DB connectivity,
+    // scheduler liveness, aggregate polling signal) - distinct from any
+    // monitored device's up/down status. Unauthenticated by design (health
+    // endpoints are typically polled by orchestration tooling that can't
+    // do interactive auth) and returns no monitor-identifying or
+    // credential data, only aggregate counts and subsystem status.
+    app.get("/health", async (request, response) => {
+        try {
+            const status = await SelfHealth.getStatus();
+            response.status(status.ok ? 200 : 503).json(status);
+        } catch (error) {
+            response.status(503).json({ ok: false, error: error.message });
+        }
     });
 
     if (isDev) {
