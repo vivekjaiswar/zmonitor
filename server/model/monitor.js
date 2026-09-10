@@ -110,11 +110,14 @@ class Monitor extends BeanModel {
     /**
      * Return an object that ready to parse to JSON
      * @param {object} preloadData to prevent n+1 problems, we query the data in a batch outside of this function
-     * @param {boolean} includeSensitiveData Include sensitive data in
-     * JSON
+     * @param {boolean} includeSensitiveData Include sensitive data
+     * (credentials, secrets, connection strings) in the JSON. Defaults
+     * to false - callers must explicitly opt in, and only for callers
+     * who have verified the requesting user is an admin. Never pass
+     * true for a read-only/employee-scoped request.
      * @returns {object} Object ready to parse
      */
-    toJSON(preloadData = {}, includeSensitiveData = true) {
+    toJSON(preloadData = {}, includeSensitiveData = false) {
         let screenshot = null;
 
         if (this.type === "real-browser") {

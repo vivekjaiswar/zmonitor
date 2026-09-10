@@ -1438,7 +1438,7 @@ let needSetup = false;
                 const preloadData = await Monitor.preparePreloadData(monitorData);
                 callback({
                     ok: true,
-                    monitor: monitor.toJSON(preloadData),
+                    monitor: monitor.toJSON(preloadData, socket.userRole === "admin"),
                 });
             } catch (e) {
                 callback({
