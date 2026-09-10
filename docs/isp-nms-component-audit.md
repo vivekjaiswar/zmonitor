@@ -114,10 +114,39 @@ No removal/keep classification applies here — this is coverage, not code to de
 - Zero test coverage for: RBAC/role scoping (`getAccessibleMonitorIdsSQL`, the employee fail-closed guard), `isImportantBeat`/`isImportantForNotification` transition logic, maintenance-window suppression logic.
 - This matters directly for the wedge: correlation-engine tests (spec Section 36 — "OLT down → PON/ONU/customer impact → one root incident") will need to build on the transition-event logic in `monitor.js`, which currently has no test coverage at all. Any correlation work should add tests for the underlying transition logic it depends on, not just the new correlation code.
 
+## 8. Self-health / observability gaps
+
+No removal/keep classification — this is a production-readiness gap, not code to reclassify.
+
+- **Exists**: `/metrics` (Prometheus, auth-gated) — but `server/prometheus.js` exposes only *monitored-device* metrics (cert expiry, uptime ratio, response time, status). Nothing about ZMonitor's own process.
+- **Does not exist**: no `/health`/`/readiness`/`/liveness` endpoint once the app is running (only a migration-phase-only `/migrate-status`). No first-class tracking of scheduler health, monitor-execution health, SNMP failure rate, DB connectivity, Socket.IO connection health, or notification-subsystem health. No process CPU/memory/disk tracking anywhere (confirmed via grep — none of the relevant Node APIs or packages are used/present).
+- The croner-based job scheduler (`server/jobs.js`) has no error capture or last-run/health status recorded — if `clear-old-data` or `incremental-vacuum` silently starts failing, nothing surfaces it.
+
+## 9. Stale telemetry gap
+
+- Exactly 4 heartbeat states exist (`UP/DOWN/PENDING/MAINTENANCE`, `server/model/heartbeat.js`). No 5th "STALE" state, and no distinction anywhere between "last successful poll" and "last poll attempt" as separate tracked values.
+- Practical implication: a monitor whose polling has silently stopped (scheduler stuck, process issue) will keep showing its last-known status indefinitely, with nothing in the data model to flag that the status itself may be stale. Confirmed via grep — zero hits for "stale" outside unrelated license-check-in code.
+
+## 10. Flapping detection gap
+
+- Confirmed via grep: zero "flap" references anywhere in the codebase.
+- Transition logic (`isImportantBeat`/`isImportantForNotification` in `monitor.js`) is purely two-state (previous beat vs. current beat) — no oscillation window, no counter, no debounce. Every UP→DOWN and DOWN→UP independently triggers a notification. A flapping device today generates a full notification storm, with no flap-aware suppression or distinct flap state.
+
+## 11. Global search gap
+
+- What exists is **per-page filtering**, not global search: `MonitorList.vue`'s `searchText` input client-side filters the already-loaded monitor list by name/hostname/URL/tag. It has no cross-entity scope and no separate results view.
+- No dedicated search component, no backend search route or Socket.IO search event exist anywhere (confirmed via grep and `find`).
+
+## 12. Backup/restore verification gap
+
+- JSON export/import (`Backup.vue`, `uploadBackup` in `server.js`) exists and is reachable, but **no automated test, script, or documented procedure verifies a restore actually succeeds** — no round-trip test, no restore-into-fresh-DB-and-verify cycle. `docs/`'s only backup references are about *monitored device* config backup (Oxidized, an out-of-scope extension point), not ZMonitor's own application/DB backup.
+- Conclusion: backup/restore is entirely manual and unverified today. This is a real production-readiness gap independent of ISP-NMS scope — it's true of the product as it ships right now.
+
 ## Summary counts
 
 - KEEP / KEEP_AND_REFACTOR: 12 components — the real foundation, all reusable for the wedge.
 - DEPRECATE / REMOVE (traced-but-not-yet-removed): 8 components — status pages, badges, gaming monitors, docker monitoring (pending investigation), website-content checks, branding strings.
 - UNKNOWN_REQUIRES_INVESTIGATION: 9 components — mostly dual-use protocol monitor types, correctly left unclassified pending product input.
 - New (nothing to migrate away from): 4 — customer/service model, dependency graph, correlation engine, audit logging.
-- **Two blocking findings (§0)**: no customer/subscriber schema exists yet (gates the wedge itself), and monitor credentials including the SNMP community string leak to every authenticated user including read-only roles (independent security issue, should be fixed regardless of wedge scope).
+- **Production-readiness gaps (§8-§12), none built yet**: self-health/observability, stale telemetry, flapping detection, global search, verified backup/restore. All five are real gaps in the product as it ships today — none are specific to the ISP-NMS wedge, and none are gated by the discovery call.
+- **Two original blocking findings (§0)**: no customer/subscriber schema exists yet (gates the wedge itself), and monitor credentials including the SNMP community string leak to every authenticated user including read-only roles (independent security issue — fix in progress, see `docs/isp-nms-prd.md` §5.1).
