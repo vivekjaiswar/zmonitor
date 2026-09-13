@@ -34,9 +34,11 @@ No end-subscriber-facing UI is in scope for this phase (no customer self-service
 
 (Full evidence trail in `docs/designs/isp-nms-wedge.md` — summarized here.)
 
-Target companies Jeebr, Aerpace, and Microscan are named as potential customers; no named individual contact or confirmed current-tool pain point exists yet. The approved design doc's gate stands: **a discovery call with a named contact at one of these three accounts happens before this scope is locked and built.** This PRD documents *what would ship* once that gate clears — it is not authorization to start building the OLT/ONU + correlation features ahead of that call.
+Target companies Jeebr, Aerpace, and Microscan are named as potential customers; no named individual contact or confirmed current-tool pain point exists yet. The approved design doc set a gate — a discovery call before this scope is locked and built — and gave it a 2-week window (due 2026-09-24).
 
-What's authorized to proceed independent of that gate: the credential-exposure fix (§5.1) — a real, present-day security gap unrelated to the wedge's demand question.
+**Update, 2026-09-13:** with 11 days left on that window and no named contact reached, the founder made an explicit, informed decision to proceed with §4.1's gated items anyway. Recorded in `docs/designs/isp-nms-wedge.md` rather than silently overridden. The demand-evidence tier hasn't changed — this is still "target account, no confirmed contact" — the founder is choosing to accept that risk and build ahead of it, not asserting the evidence got stronger.
+
+What was already authorized to proceed independent of that gate, and shipped: the credential-exposure fix (§5.1), self-health (§5.7), stale telemetry (§5.8), flapping detection (§5.9), and backup/restore documentation (§5.11) — a real, present-day security/reliability gap, unrelated to the wedge's demand question.
 
 ## 4. Scope
 
@@ -44,15 +46,15 @@ What's authorized to proceed independent of that gate: the credential-exposure f
 
 **Not gated on the discovery call** — production-foundation hardening, proceeds independently of customer validation:
 
-1. **Credential-exposure fix** (§5.1) — implemented, test-verified, held uncommitted pending review.
-2. **Self-health / observability** (§5.7) — new.
-3. **Stale telemetry** (§5.8) — new.
-4. **Flapping detection** (§5.9) — new.
-5. **Verified backup/restore** (§5.11) — new.
+1. **Credential-exposure fix** (§5.1) — shipped (`24a989c7`).
+2. **Self-health / observability** (§5.7) — shipped.
+3. **Stale telemetry** (§5.8) — shipped.
+4. **Flapping detection** (§5.9) — shipped (classification layer).
+5. **Verified backup/restore** (§5.11) — documented; full round-trip automation still open.
 
-**Gated on the discovery call** (a named contact at Jeebr, Aerpace, or Microscan) — the wedge itself:
+**Originally gated on the discovery call, proceeding now by explicit founder decision (2026-09-13 — see `docs/designs/isp-nms-wedge.md`'s Assignment section for the recorded override):**
 
-6. **OLT/ONU depth monitoring** — read-only telemetry and status for one OLT vendor (vendor TBD by the discovery call), reusing the existing SNMP monitor-type architecture.
+6. **OLT/ONU depth monitoring** — read-only telemetry and status for one OLT vendor. No vendor is confirmed (the discovery call that would have supplied this hasn't happened) — this now needs a founder-supplied vendor choice instead, made without customer input, or stays unbuilt until one is picked.
 7. **Customer/service data model** — the schema that does not currently exist (`docs/isp-nms-component-audit.md` §0.1): Customer → Service → ONU → PON → OLT → POP.
 8. **Dependency graph** — generic NODE/EDGE model, not per-device-type hardcoded logic.
 9. **Correlation engine** — walk the dependency graph on a monitor status transition, produce one root incident instead of one alert per affected leaf. Includes recovery verification (§5.10).
