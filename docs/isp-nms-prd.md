@@ -100,6 +100,8 @@ BGP/OSPF monitoring, RADIUS/AAA as infrastructure (vs. the existing login-test m
 - No unnecessary personal information collected (per the original spec's own instruction).
 - Smallest backward-compatible schema extension — additive Knex migrations only, no breaking changes to existing installs (per migration-safety requirement, §6).
 
+**Status:** shipped. `db/knex_migrations/2026-09-13-0000-add-customer-service-model.js` — purely additive (two new tables, no changes to existing ones), `service.monitor_id` is nullable with `ON DELETE SET NULL` so decommissioning/re-provisioning a device doesn't destroy the customer/service record, and `customer.user_id` follows the existing per-user ownership pattern already used by `monitor`/`notification`. Verified against an isolated throwaway SQLite database (same pattern as `test-migration.js`, not `db/kuma.db`): migration runs cleanly, both tables have the expected columns, and a real insert-and-read round trip (user → customer → service) works, confirmed by `test/backend-test/test-customer-service-schema.js`. This is the schema gap `docs/isp-nms-component-audit.md` §0.1 flagged as not existing — it now does, though nothing populates it yet (that's the discovery-call-dependent OLT/ONU work, §5.2, still needing a vendor choice).
+
 ### 5.4 Dependency Graph
 
 - Generic NODE (typed: DEVICE, INTERFACE, POP, OLT, PON, ONU, CUSTOMER, SERVICE, ...) / EDGE (dependency relationship) model.
