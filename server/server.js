@@ -49,7 +49,7 @@ const args = require("args-parser")(process.argv);
 const { sleep, log, getRandomInt, genSecret, isDev } = require("../src/util");
 const config = require("./config");
 
-process.title = "uptime-kuma";
+process.title = "zmonitor";
 
 log.debug("server", "Arguments");
 log.debug("server", args);

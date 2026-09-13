@@ -78,6 +78,8 @@ If a named contact at one of the three accounts confirms this is the actual bloc
 
 Before writing another line of code toward this: get a named contact at Jeebr, Aerpace, or Microscan on a call within the next 2 weeks, and ask them directly what they're using today and what's missing. This is a discovery conversation, not a demo — go in with questions, not a pitch. This is the second office-hours session in a row where "named companies, no named contact" was the evidence ceiling — closing that gap is worth more right now than any amount of additional architecture. If two weeks pass with no named contact reached, that's itself a finding — come back and revisit whether these three accounts are the right wedge at all.
 
+**Update, 2026-09-13:** with 11 days left on the 2-week window and no named contact reached yet, the founder made an explicit, informed decision to proceed with the customer/service model and dependency graph anyway, accepting the risk this section describes — building before the demand-evidence gap is closed. Recorded here rather than silently overridden. The risk stands as originally written: this is scope built on "target account, no confirmed contact" evidence, same tier as it was on 2026-09-10.
+
 ## What I noticed about how you think
 
 - You went in saying "Yes, full rewrite is intentional" — full conviction on the biggest possible scope. When the demand evidence turned out to be "market/competitive reasoning" rather than a named blocker, you didn't dig in defensively — you picked the evidence-aligned option (B) once it was laid out. That's a real signal: most people rationalize the decision they already made.

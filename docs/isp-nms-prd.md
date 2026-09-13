@@ -34,9 +34,11 @@ No end-subscriber-facing UI is in scope for this phase (no customer self-service
 
 (Full evidence trail in `docs/designs/isp-nms-wedge.md` — summarized here.)
 
-Target companies Jeebr, Aerpace, and Microscan are named as potential customers; no named individual contact or confirmed current-tool pain point exists yet. The approved design doc's gate stands: **a discovery call with a named contact at one of these three accounts happens before this scope is locked and built.** This PRD documents *what would ship* once that gate clears — it is not authorization to start building the OLT/ONU + correlation features ahead of that call.
+Target companies Jeebr, Aerpace, and Microscan are named as potential customers; no named individual contact or confirmed current-tool pain point exists yet. The approved design doc set a gate — a discovery call before this scope is locked and built — and gave it a 2-week window (due 2026-09-24).
 
-What's authorized to proceed independent of that gate: the credential-exposure fix (§5.1) — a real, present-day security gap unrelated to the wedge's demand question.
+**Update, 2026-09-13:** with 11 days left on that window and no named contact reached, the founder made an explicit, informed decision to proceed with §4.1's gated items anyway. Recorded in `docs/designs/isp-nms-wedge.md` rather than silently overridden. The demand-evidence tier hasn't changed — this is still "target account, no confirmed contact" — the founder is choosing to accept that risk and build ahead of it, not asserting the evidence got stronger.
+
+What was already authorized to proceed independent of that gate, and shipped: the credential-exposure fix (§5.1), self-health (§5.7), stale telemetry (§5.8), flapping detection (§5.9), and backup/restore documentation (§5.11) — a real, present-day security/reliability gap, unrelated to the wedge's demand question.
 
 ## 4. Scope
 
@@ -44,15 +46,15 @@ What's authorized to proceed independent of that gate: the credential-exposure f
 
 **Not gated on the discovery call** — production-foundation hardening, proceeds independently of customer validation:
 
-1. **Credential-exposure fix** (§5.1) — implemented, test-verified, held uncommitted pending review.
-2. **Self-health / observability** (§5.7) — new.
-3. **Stale telemetry** (§5.8) — new.
-4. **Flapping detection** (§5.9) — new.
-5. **Verified backup/restore** (§5.11) — new.
+1. **Credential-exposure fix** (§5.1) — shipped (`24a989c7`).
+2. **Self-health / observability** (§5.7) — shipped.
+3. **Stale telemetry** (§5.8) — shipped.
+4. **Flapping detection** (§5.9) — shipped (classification layer).
+5. **Verified backup/restore** (§5.11) — documented; full round-trip automation still open.
 
-**Gated on the discovery call** (a named contact at Jeebr, Aerpace, or Microscan) — the wedge itself:
+**Originally gated on the discovery call, proceeding now by explicit founder decision (2026-09-13 — see `docs/designs/isp-nms-wedge.md`'s Assignment section for the recorded override):**
 
-6. **OLT/ONU depth monitoring** — read-only telemetry and status for one OLT vendor (vendor TBD by the discovery call), reusing the existing SNMP monitor-type architecture.
+6. **OLT/ONU depth monitoring** — read-only telemetry and status for one OLT vendor. No vendor is confirmed (the discovery call that would have supplied this hasn't happened) — this now needs a founder-supplied vendor choice instead, made without customer input, or stays unbuilt until one is picked.
 7. **Customer/service data model** — the schema that does not currently exist (`docs/isp-nms-component-audit.md` §0.1): Customer → Service → ONU → PON → OLT → POP.
 8. **Dependency graph** — generic NODE/EDGE model, not per-device-type hardcoded logic.
 9. **Correlation engine** — walk the dependency graph on a monitor status transition, produce one root incident instead of one alert per affected leaf. Includes recovery verification (§5.10).
@@ -98,11 +100,15 @@ BGP/OSPF monitoring, RADIUS/AAA as infrastructure (vs. the existing login-test m
 - No unnecessary personal information collected (per the original spec's own instruction).
 - Smallest backward-compatible schema extension — additive Knex migrations only, no breaking changes to existing installs (per migration-safety requirement, §6).
 
+**Status:** shipped. `db/knex_migrations/2026-09-13-0000-add-customer-service-model.js` — purely additive (two new tables, no changes to existing ones), `service.monitor_id` is nullable with `ON DELETE SET NULL` so decommissioning/re-provisioning a device doesn't destroy the customer/service record, and `customer.user_id` follows the existing per-user ownership pattern already used by `monitor`/`notification`. Verified against an isolated throwaway SQLite database (same pattern as `test-migration.js`, not `db/kuma.db`): migration runs cleanly, both tables have the expected columns, and a real insert-and-read round trip (user → customer → service) works, confirmed by `test/backend-test/test-customer-service-schema.js`. This is the schema gap `docs/isp-nms-component-audit.md` §0.1 flagged as not existing — it now does, though nothing populates it yet (that's the discovery-call-dependent OLT/ONU work, §5.2, still needing a vendor choice).
+
 ### 5.4 Dependency Graph
 
 - Generic NODE (typed: DEVICE, INTERFACE, POP, OLT, PON, ONU, CUSTOMER, SERVICE, ...) / EDGE (dependency relationship) model.
 - No per-device-type hardcoded correlation function. One graph-walk implementation, typed nodes.
 - Initial population covers only what the wedge's resource types require (OLT → PON → ONU → Service → Customer chain) — extension points documented for POP/router/BGP-peer/uplink nodes, not built.
+
+**Status:** shipped, including the traversal engine, with real DB-backed evidence (not just unit-level, per `docs/isp-nms-production-readiness.md` row F1). `db/knex_migrations/2026-09-13-0100-add-dependency-graph.js` adds `graph_node` (wraps a real entity via `ref_table`/`ref_id` — never freestanding data) and `graph_edge` (directional; traversing "upstream" is a query in the reverse direction, not a second stored edge). `server/dependency-graph.js` implements the exact NODE_TYPES/EDGE_TYPES from the spec, `getOrCreateNode`/`addEdge` (both idempotent), and `walkDownstream`/`walkUpstream` built on one shared, pure BFS function (`walkFromAdjacency`) — the same function walks both directions depending on which adjacency direction the caller builds. One documented simplification (`ponytail:` comment in the source): `walkDownstream`/`walkUpstream` load every edge in the database rather than a scoped subgraph — fine at current scale (nothing populates this table yet), with the upgrade path (scope by user_id, or a recursive SQL CTE) named rather than silently assumed away. Tested at two levels: the pure BFS logic (7/7 tests — chain traversal, depth tracking, sibling isolation, cycle protection, maxDepth cutoff, diamond-shaped dedup) and the full DB-backed round trip against an isolated database (idempotency of both `getOrCreateNode` and `addEdge`, a real OLT→Service walk in both directions). **Not done:** nothing populates this graph yet — that's the OLT/ONU work (§5.2) creating nodes/edges as it discovers topology, still needing a vendor choice.
 
 ### 5.5 Correlation Engine
 
@@ -130,12 +136,14 @@ BGP/OSPF monitoring, RADIUS/AAA as infrastructure (vs. the existing login-test m
 
 **Gap today** (`docs/isp-nms-component-audit.md` §9): exactly 4 heartbeat states exist (`UP/DOWN/PENDING/MAINTENANCE`), no distinction between "last successful poll" and "last poll attempt," no STALE concept.
 
+**Status:** shipped as a read-only compute layer, no schema change. `server/stale-telemetry.js` — `lastAttemptTime` (most recent heartbeat, any status — every `beat()` call writes one regardless of outcome, so this is already "is the scheduler still trying") and `lastSuccessTime` (most recent UP heartbeat) are derived directly from existing heartbeat data; no new columns needed. Staleness threshold is `max(3 × interval, 300s)` — tolerates ordinary scheduling jitter, doesn't flag a short-interval monitor stale after one missed beat, doesn't flag an hourly monitor stale after 5 quiet minutes. Threshold logic is unit-tested (4/4 passing, no DB dependency); the per-monitor `getStatus()` query is implemented but not exercised against a running server this session, same reasoning as §5.7. **Not yet done:** wiring this into `Monitor.toJSON()`/the API response or the UI — this pass is the compute layer only, per the requirement's own "eventually" framing on the UI piece.
 **Requirement:** track last-successful-telemetry timestamp separately from last-attempt timestamp. Introduce an explicit stale state/flag when telemetry age exceeds a threshold, so a resource whose polling has silently stopped doesn't keep showing its last-known status as if it were current. This must not silently change the existing 4 states' semantics — stale is additive, surfaced explicitly (e.g. "Last telemetry: 14 minutes ago"), not a redefinition of UP/DOWN. Dashboards, alerts, and (once built) correlation must all account for stale state.
 
 ### 5.9 Flapping Detection
 
 **Gap today** (`docs/isp-nms-component-audit.md` §10): zero flap-detection logic exists. Every UP/DOWN transition independently notifies — a flapping device generates a full notification storm today.
 
+**Status:** classification layer shipped, notification integration not done. `server/flap-detection.js` — looks at a monitor's last 10 heartbeats, classifies as flapping at 4+ status transitions within that window. Deliberately simple per the requirement's own "do not over-engineer this" instruction — a transition-count-within-a-window check, not a statistical model. One documented simplification (`ponytail:` comment in the source): counts every literal status change including through PENDING during retries, not just UP/DOWN — upgrade path noted if this over-fires in practice. Pure counting logic is unit-tested (8/8 passing, no DB dependency); the per-monitor query is implemented but not exercised against a running server this session. **Not yet done:** actually reducing notification noise for a flapping monitor — that's a change to the notification-dispatch path (`isImportantForNotification`/`sendNotification` in `monitor.js`), not built yet since it touches the same inline `beat()` logic Phase 3 deliberately avoided modifying without an integration-test harness. This pass gives you the classification; wiring it into dispatch is the next increment.
 **Requirement:** detect repeated state transitions within a configurable window. When a resource is classified as flapping: expose that state explicitly, reduce notification noise, but keep monitoring active and never hide the underlying failure or lose state history. Do not over-engineer this — a transition-count-within-a-window check is sufficient; this is not a machine-learning problem.
 
 ### 5.10 Recovery Verification (extends §5.5)
@@ -146,6 +154,7 @@ BGP/OSPF monitoring, RADIUS/AAA as infrastructure (vs. the existing login-test m
 
 **Gap today** (`docs/isp-nms-component-audit.md` §12): JSON export/import exists and is reachable, but no test, script, or documented procedure has ever verified that a restore actually succeeds.
 
+**Status:** documentation shipped (`docs/isp-nms-backup-restore.md`), automated round-trip verification not done. Also found and ran a pre-existing, previously-unexecuted-this-session test (`test/backend-test/test-migration.js`) proving fresh-install migration succeeds against an isolated throwaway SQLite file — real evidence for the "fresh installation" requirement, not new code. **Not done:** an automated JSON export/import round-trip test (the actual restore-correctness proof) — the `uploadBackup` handler is inline in `server.js`, same shape as `beat()`, not independently testable without either a refactor of a data-integrity-sensitive path or a fuller integration-test harness (isolated server + DB + logged-in test client). Scoped out of this pass deliberately, documented as the explicit next increment rather than silently skipped.
 **Requirement:** a backup is not "done" because an export button exists. At minimum: document the restore procedure, and verify it — restore into a fresh database and confirm the application starts and data is intact. Automate this verification if practical (a script, not just a manual one-time check). Never include secrets in backups unless explicitly required and protected — check this against §5.1's credential fields before considering backup complete.
 
 ## 6. Non-Functional Requirements
