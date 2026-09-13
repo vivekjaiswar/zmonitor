@@ -119,5 +119,6 @@ Per the design doc's outer ceiling and the spec's own Section 31, these are exte
 
 ## Open architectural questions (carried from the audit, not yet answered)
 
-- Does the eventual `Incident` model reuse the existing `server/model/incident.js` table (currently status-page-only), or is that a naming collision that needs a fresh table? Needs a compatibility check against status-page usage before deciding.
 - Where do encrypted-at-rest credentials live once the SNMP-credential-column fix (audit §2) happens — a dedicated `credentials` table shared across monitor types, or per-type columns with app-layer encryption? Not decided; smallest safe change wins, per the project's lean-code guidance.
+
+**Resolved, 2026-09-13:** the `Incident`-model question above it used to sit next to. Does not reuse `server/model/incident.js` — traced its full reference footprint (2 files, both status-page-specific) and confirmed it's a manually-authored announcement banner with no severity/root-cause/impact/lifecycle fields at all. Built `nms_incident`/`nms_incident_impact`/`nms_incident_event` as new, separate tables instead. See `docs/isp-nms-prd.md` §5.6 for the full reasoning.
