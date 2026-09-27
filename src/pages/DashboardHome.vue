@@ -1,41 +1,29 @@
 <template>
     <transition ref="tableContainer" name="slide-fade" appear>
         <div v-if="$route.name === 'DashboardHome'">
-            <h1 class="mb-3">
-                {{ $t("Quick Stats") }}
-            </h1>
+            <div class="d-flex align-items-baseline justify-content-between mb-3">
+                <h1 class="mb-0">{{ $t("Dashboard") }}</h1>
+                <div class="live-indicator"><span class="live-dot" />{{ $t("Live") }}</div>
+            </div>
 
-            <div class="stat-strip shadow-box mb-3">
-                <div class="stat-tile stat-tile-clickable" @click="filterByStatus(1)">
-                    <h3>{{ $t("Up") }}</h3>
-                    <span class="num" :class="$root.stats.up > 0 ? 'text-success' : 'text-secondary'">
-                        {{ $root.stats.up }}
-                    </span>
-                </div>
-                <div class="stat-tile stat-tile-clickable" @click="filterByStatus(0)">
-                    <h3>{{ $t("Down") }}</h3>
-                    <span class="num" :class="$root.stats.down > 0 ? 'text-danger' : 'text-secondary'">
-                        {{ $root.stats.down }}
-                    </span>
-                </div>
-                <div class="stat-tile stat-tile-clickable" @click="filterByStatus(3)">
-                    <h3>{{ $t("Maintenance") }}</h3>
-                    <span class="num" :class="$root.stats.maintenance > 0 ? 'text-maintenance' : 'text-secondary'">
-                        {{ $root.stats.maintenance }}
-                    </span>
-                </div>
-                <div class="stat-tile">
-                    <h3>{{ $t("Unknown") }}</h3>
-                    <span class="num text-secondary">{{ $root.stats.unknown }}</span>
-                </div>
-                <div class="stat-tile stat-tile-clickable" @click="filterByActive(false)">
-                    <h3>{{ $t("pauseDashboardHome") }}</h3>
-                    <span class="num text-secondary">{{ $root.stats.pause }}</span>
-                </div>
+            <div class="stat-row mb-3">
+                <StatCard :label="$t('Up')" :value="$root.stats.up" :status="$root.stats.up > 0 ? 'up' : 'neutral'" clickable @click="filterByStatus(1)" />
+                <StatCard :label="$t('Down')" :value="$root.stats.down" :status="$root.stats.down > 0 ? 'down' : 'neutral'" clickable @click="filterByStatus(0)" />
+                <StatCard :label="$t('Maintenance')" :value="$root.stats.maintenance" :status="$root.stats.maintenance > 0 ? 'warn' : 'neutral'" clickable @click="filterByStatus(3)" />
+                <StatCard :label="$t('Unknown')" :value="$root.stats.unknown" status="neutral" />
+                <StatCard :label="$t('pauseDashboardHome')" :value="$root.stats.pause" status="neutral" clickable @click="filterByActive(false)" />
+            </div>
+
+            <!-- Real, currently-computed fleet metrics - not a fabricated
+                 historical trend line. A true trend graph needs a backend
+                 aggregation query this pass doesn't add (see docs/isp-nms-frontend-redesign.md). -->
+            <div v-if="hasAnyMonitor" class="stat-row mb-3">
+                <StatCard :label="$t('Overall Uptime')" :value="overallUptimeLabel" :status="overallUptime >= 99 ? 'up' : 'warn'" />
+                <StatCard :label="$t('Avg Response Time')" :value="avgResponseTimeLabel" status="neutral" />
             </div>
 
             <div class="shadow-box table-shadow-box table-wrapper">
-                <div v-if="$root.isAdmin" class="mb-3 text-end">
+                <div v-if="$root.isAdmin && importantHeartBeatListLength > 0" class="mb-3 text-end">
                     <button
                         class="btn btn-sm btn-outline-danger"
                         :disabled="clearingAllEvents"
@@ -44,7 +32,16 @@
                         {{ $t("Clear All Events") }}
                     </button>
                 </div>
-                <table class="table table-borderless table-hover">
+
+                <div v-if="!hasAnyMonitor" class="empty-state">
+                    <div class="empty-state-text">
+                        <b>{{ $t("No monitors configured.") }}</b>
+                        {{ $t("Add one to start tracking it.") }}
+                    </div>
+                    <router-link to="/add" class="btn btn-primary btn-sm">{{ $t("Add") }}</router-link>
+                </div>
+
+                <table v-else class="table table-borderless table-hover">
                     <thead>
                         <tr>
                             <th v-if="showGroupColumn">{{ $t("Group Name") }}</th>
@@ -115,6 +112,7 @@ import Status from "../components/Status.vue";
 import Datetime from "../components/Datetime.vue";
 import Pagination from "v-pagination-3";
 import Confirm from "../components/Confirm.vue";
+import StatCard from "../components/StatCard.vue";
 
 export default {
     components: {
@@ -122,6 +120,7 @@ export default {
         Status,
         Pagination,
         Confirm,
+        StatCard,
     },
     props: {
         calculatedHeight: {
@@ -149,6 +148,41 @@ export default {
         },
         tableColumnCount() {
             return this.showGroupColumn ? 5 : 4;
+        },
+        hasAnyMonitor() {
+            return Object.keys(this.$root.monitorList).length > 0;
+        },
+
+        /**
+         * Real, current-snapshot uptime percentage across non-paused
+         * monitors (up / active). Not a historical trend - see the
+         * template comment for why.
+         * @returns {number|null} Percentage 0-100, or null if no active monitors
+         */
+        overallUptime() {
+            const { up, active } = this.$root.stats;
+            if (!active) {
+                return null;
+            }
+            return (up / active) * 100;
+        },
+        overallUptimeLabel() {
+            return this.overallUptime === null ? "—" : `${this.overallUptime.toFixed(1)}%`;
+        },
+
+        /**
+         * Real average of each monitor's already-fetched avgPing value.
+         * @returns {number|null} Average response time in ms, or null if no data yet
+         */
+        avgResponseTime() {
+            const values = Object.values(this.$root.avgPingList).filter((v) => typeof v === "number");
+            if (values.length === 0) {
+                return null;
+            }
+            return values.reduce((sum, v) => sum + v, 0) / values.length;
+        },
+        avgResponseTimeLabel() {
+            return this.avgResponseTime === null ? "—" : `${Math.round(this.avgResponseTime)}ms`;
         },
     },
     watch: {
@@ -324,61 +358,51 @@ export default {
 <style lang="scss" scoped>
 @import "../assets/vars";
 
-.num {
-    font-size: 28px;
-    color: var(--brand-primary);
-    font-weight: 700;
-    display: block;
-}
-
-.stat-strip {
+.stat-row {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    padding: 0;
-    text-align: center;
-
-    .stat-tile {
-        padding: 16px 12px;
-        border-right: 1px solid $card-border-color;
-
-        &:last-child {
-            border-right: none;
-        }
-
-        h3 {
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-            color: $secondary-text;
-            margin-bottom: 6px;
-        }
-    }
-
-    .stat-tile-clickable {
-        cursor: pointer;
-        transition: background-color 0.15s ease;
-
-        &:hover {
-            background-color: $highlight-white;
-        }
-    }
-
-    .dark & .stat-tile-clickable:hover {
-        background-color: $dark-font-color2;
-    }
-
-    .dark & .stat-tile {
-        border-right-color: $card-border-color-dark;
-    }
+    gap: 8px;
 
     @media (max-width: 650px) {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
 
-        .stat-tile {
-            border-right: none;
-            border-bottom: 1px solid $card-border-color;
-        }
+.live-indicator {
+    font-size: 11px;
+    color: $secondary-text;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    .dark & {
+        color: $dark-font-color;
+    }
+}
+
+.live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: $success;
+    display: inline-block;
+}
+
+.empty-state {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    flex-wrap: wrap;
+}
+
+.empty-state-text {
+    flex: 1;
+    font-size: 13px;
+    color: $secondary-text;
+
+    .dark & {
+        color: $dark-font-color;
     }
 }
 

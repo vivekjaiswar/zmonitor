@@ -30,59 +30,66 @@
             </div>
         </div>
 
-        <!-- Desktop: persistent header (brand always visible, white-label safe)
-             plus a collapsible left sidebar shell for navigation -->
+        <!-- Desktop: persistent top nav bar (brand + nav links + search + profile).
+             Replaces the earlier header+collapsible-sidebar shell - approved via
+             /plan-design-review, 2026-09-27 (docs/isp-nms-frontend-redesign.md). -->
         <template v-if="!$root.isMobile">
             <header v-if="$root.loggedIn" class="app-header">
                 <router-link to="/map" class="app-header-brand">
                     <img class="brand-icon" width="28" height="28" :src="appLogoUrl" />
                     <span class="title">{{ appName }}</span>
                 </router-link>
-                <button
-                    type="button"
-                    class="sidebar-toggle-btn"
-                    :title="$t(sidebarHidden ? 'showMenu' : 'hideMenu')"
-                    @click="toggleSidebar"
-                >
-                    <font-awesome-icon :icon="sidebarHidden ? 'bars' : 'angle-double-left'" />
-                </button>
-            </header>
 
-            <div class="app-shell">
-                <aside v-if="$root.loggedIn && !sidebarHidden" class="app-sidebar">
-                <nav class="sidebar-nav">
-                    <router-link to="/dashboard" class="sidebar-link" :style="{ order: $root.info.dashboardFirst === false ? 2 : 1 }">
+                <nav class="topnav-links">
+                    <router-link to="/dashboard" class="topnav-link" :style="{ order: $root.info.dashboardFirst === false ? 2 : 1 }">
                         <font-awesome-icon icon="tachometer-alt" />
                         {{ $t("Dashboard") }}
                     </router-link>
-                    <router-link to="/map" class="sidebar-link" :style="{ order: $root.info.dashboardFirst === false ? 1 : 2 }">
+                    <router-link to="/map" class="topnav-link" :style="{ order: $root.info.dashboardFirst === false ? 1 : 2 }">
                         <font-awesome-icon icon="map-marker-alt" />
                         {{ $t("Network Map") }}
                     </router-link>
-                    <router-link to="/manage-status-page" class="sidebar-link" style="order: 3">
+                    <router-link to="/list" class="topnav-link" style="order: 3">
+                        <font-awesome-icon icon="list" />
+                        {{ $t("List") }}
+                    </router-link>
+                    <router-link to="/manage-status-page" class="topnav-link" style="order: 4">
                         <font-awesome-icon icon="stream" />
                         {{ $t("Status Pages") }}
                     </router-link>
                 </nav>
 
+                <!-- Global search, monitors-only scope per docs/isp-nms-frontend-redesign.md
+                     Open Question 1: full cross-entity search stays a tracked TODO. -->
+                <form class="topnav-search" role="search" @submit.prevent="submitGlobalSearch">
+                    <font-awesome-icon icon="search" class="topnav-search-icon" />
+                    <input
+                        ref="globalSearchInput"
+                        v-model="globalSearchText"
+                        type="search"
+                        :aria-label="$t('Search Monitors')"
+                        :placeholder="$t('Search monitors...')"
+                    />
+                    <kbd class="topnav-search-kbd">{{ isMac ? "⌘K" : "Ctrl+K" }}</kbd>
+                </form>
+
                 <a
                     v-if="hasNewVersion"
                     target="_blank"
                     href="https://github.com/vivekjaiswar/zmonitor/releases"
-                    class="sidebar-update-link"
+                    class="topnav-update-link"
+                    :title="$t('New Update')"
                 >
                     <font-awesome-icon icon="arrow-alt-circle-up" />
-                    {{ $t("New Update") }}
                 </a>
 
-                <div class="sidebar-footer dropdown dropdown-profile-pic dropup">
-                    <div class="sidebar-link profile-trigger" data-bs-toggle="dropdown">
+                <div class="dropdown dropdown-profile-pic">
+                    <button type="button" class="profile-trigger" data-bs-toggle="dropdown" :aria-label="$t('Profile menu')">
                         <div class="profile-pic">{{ $root.usernameFirstChar }}</div>
-                        <span class="profile-name">{{ $root.username || $t("signedInDispDisabled") }}</span>
-                        <font-awesome-icon icon="angle-down" class="ms-auto" />
-                    </div>
+                    </button>
 
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li class="dropdown-item-text">{{ $root.username || $t("signedInDispDisabled") }}</li>
                         <li>
                             <router-link
                                 to="/maintenance"
@@ -125,14 +132,13 @@
                         </li>
                     </ul>
                 </div>
-                </aside>
+            </header>
 
-                <div class="app-content">
-                    <main>
-                        <router-view v-if="$root.loggedIn" />
-                        <Login v-if="!$root.loggedIn && $root.allowLoginDialog" />
-                    </main>
-                </div>
+            <div class="app-content">
+                <main>
+                    <router-view v-if="$root.loggedIn" />
+                    <Login v-if="!$root.loggedIn && $root.allowLoginDialog" />
+                </main>
             </div>
         </template>
 
@@ -208,7 +214,7 @@ export default {
             numActiveToasts: 0,
             toastContainerObserver: null,
             licenseStatus: null,
-            sidebarHidden: localStorage.getItem("sidebarHidden") === "true",
+            globalSearchText: "",
         };
     },
 
@@ -243,6 +249,10 @@ export default {
             }
             return this.$root.baseURL + logoUrl;
         },
+
+        isMac() {
+            return navigator.platform.toUpperCase().includes("MAC");
+        },
     },
 
     watch: {
@@ -275,22 +285,16 @@ export default {
         if (this.$root.isAdmin) {
             this.fetchLicenseStatus();
         }
+
+        window.addEventListener("keydown", this.onGlobalSearchShortcut);
     },
 
     beforeUnmount() {
         this.toastContainerObserver.disconnect();
+        window.removeEventListener("keydown", this.onGlobalSearchShortcut);
     },
 
     methods: {
-        /**
-         * Toggle the desktop sidebar's visibility and persist the choice.
-         * @returns {void}
-         */
-        toggleSidebar() {
-            this.sidebarHidden = !this.sidebarHidden;
-            localStorage.setItem("sidebarHidden", this.sidebarHidden);
-        },
-
         /**
          * Clear all toast notifications.
          * @returns {void}
@@ -305,6 +309,31 @@ export default {
                     this.licenseStatus = res;
                 }
             });
+        },
+
+        /**
+         * Cmd/Ctrl+K focuses the top-nav global search input.
+         * @param {KeyboardEvent} event Keydown event
+         * @returns {void}
+         */
+        onGlobalSearchShortcut(event) {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                this.$refs.globalSearchInput?.focus();
+            }
+        },
+
+        /**
+         * Global search is scoped to monitors only for now (see
+         * docs/isp-nms-frontend-redesign.md Open Question 1) - routes to the
+         * existing monitor list with the query prefilled.
+         * @returns {void}
+         */
+        submitGlobalSearch() {
+            if (!this.globalSearchText.trim()) {
+                return;
+            }
+            this.$router.push({ path: "/list", query: { q: this.globalSearchText.trim() } });
         },
     },
 };
@@ -323,18 +352,17 @@ export default {
     letter-spacing: -0.01em;
 }
 
-$sidebar-width: 240px;
 $app-header-height: 56px;
 
-// Always visible regardless of sidebar state - carries the white-label
-// brand (logo/app name), so it must never be hideable along with the nav.
+// Full top nav bar - brand, links, search, profile. Replaces the earlier
+// header+collapsible-sidebar shell (approved via /plan-design-review,
+// 2026-09-27 - docs/isp-nms-frontend-redesign.md).
 .app-header {
     height: $app-header-height;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 0 16px 0 20px;
+    gap: 16px;
+    padding: 0 16px;
     background-color: #f8f9fa;
     border-bottom: 1px solid $card-border-color;
 
@@ -347,78 +375,31 @@ $app-header-height: 56px;
 .app-header-brand {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     text-decoration: none;
     color: inherit;
     min-width: 0;
-}
-
-.sidebar-toggle-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
     flex-shrink: 0;
-    border: 1px solid $card-border-color;
-    border-radius: $border-radius;
-    background: transparent;
-    color: $secondary-text;
-    cursor: pointer;
-
-    .dark & {
-        border-color: $dark-border-color;
-        color: $dark-font-color;
-    }
-
-    &:hover {
-        color: $primary;
-        border-color: $primary;
-    }
 }
 
-.app-shell {
+.topnav-links {
     display: flex;
-    align-items: stretch;
-    min-height: calc(100vh - #{$app-header-height});
-}
-
-.app-sidebar {
-    width: $sidebar-width;
-    flex: 0 0 $sidebar-width;
-    display: flex;
-    flex-direction: column;
-    position: sticky;
-    top: $app-header-height;
-    height: calc(100vh - #{$app-header-height});
-    background-color: #f8f9fa;
-    border-right: 1px solid $card-border-color;
-    padding: 16px 0;
-
-    .dark & {
-        background-color: $dark-header-bg;
-        border-right-color: $dark-border-color;
-    }
-}
-
-.sidebar-nav {
-    display: flex;
-    flex-direction: column;
     gap: 2px;
-    padding: 0 12px;
+    flex-shrink: 0;
 }
 
-.sidebar-link {
+.topnav-link {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
+    gap: 8px;
+    padding: 8px 12px;
     border-radius: $border-radius;
-    border-left: 3px solid transparent;
+    border-bottom: 2px solid transparent;
     color: $secondary-text;
     text-decoration: none;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
+    white-space: nowrap;
 
     .dark & {
         color: $dark-font-color;
@@ -430,45 +411,89 @@ $app-header-height: 56px;
     }
 
     &.active {
-        background-color: rgba($primary, 0.12);
-        border-left-color: $primary;
+        background-color: rgba($primary, 0.1);
+        border-bottom-color: $primary;
         color: $primary;
         font-weight: 600;
     }
 }
 
-.sidebar-update-link {
+.topnav-search {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin: 12px 12px 0;
-    padding: 8px 12px;
+    margin-left: auto;
+    width: 280px;
+    max-width: 100%;
+    padding: 6px 10px;
     border-radius: $border-radius;
-    background-color: $primary;
-    color: #fff;
-    text-decoration: none;
-    font-size: 13px;
-}
-
-.sidebar-footer {
-    margin-top: auto;
-    padding: 12px;
-    border-top: 1px solid $card-border-color;
+    border: 1px solid $card-border-color;
+    background-color: #fff;
+    color: $secondary-text;
+    flex-shrink: 1;
+    min-width: 0;
 
     .dark & {
-        border-top-color: $dark-border-color;
+        background-color: $dark-bg;
+        border-color: $dark-border-color;
     }
+
+    .topnav-search-icon {
+        flex-shrink: 0;
+        font-size: 12px;
+    }
+
+    input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        color: inherit;
+        font-size: 12.5px;
+        outline: none;
+
+        &::placeholder {
+            color: $secondary-text;
+        }
+    }
+
+    .topnav-search-kbd {
+        flex-shrink: 0;
+        font-family: $font-mono, monospace;
+        font-size: 10px;
+        padding: 1px 5px;
+        border-radius: 2px;
+        border: 1px solid $card-border-color;
+        color: $secondary-text;
+
+        .dark & {
+            border-color: $dark-border-color;
+        }
+    }
+}
+
+.topnav-update-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: $border-radius;
+    color: $primary;
+    font-size: 16px;
+}
+
+.dropdown-profile-pic {
+    flex-shrink: 0;
 
     .profile-trigger {
-        border-left: none;
-    }
-
-    .profile-name {
-        font-size: 13px;
-        font-weight: 500;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        border: none;
+        background: transparent;
+        padding: 0;
+        cursor: pointer;
     }
 }
 
@@ -606,12 +631,11 @@ $app-header-height: 56px;
         justify-content: center;
         color: white;
         background-color: var(--brand-primary);
-        width: 24px;
-        height: 24px;
-        margin-right: 5px;
-        border-radius: 50rem;
+        width: 28px;
+        height: 28px;
+        border-radius: $border-radius;
         font-weight: bold;
-        font-size: 10px;
+        font-size: 11px;
     }
 }
 

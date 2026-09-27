@@ -330,6 +330,12 @@ export default {
     },
     mounted() {
         window.addEventListener("scroll", this.onScroll);
+
+        // Prefill from the top-nav global search (?q=), which routes here
+        // since global search is scoped to monitors only for now.
+        if (this.$route.query.q) {
+            this.searchText = String(this.$route.query.q);
+        }
     },
     beforeUnmount() {
         window.removeEventListener("scroll", this.onScroll);
