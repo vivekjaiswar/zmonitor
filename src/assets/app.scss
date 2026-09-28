@@ -7,6 +7,62 @@
     --brand-primary: #{$primary};
 }
 
+// Theme browser-owned surfaces from the palette instead of leaving them at
+// browser defaults - the cheapest tell that a page was designed rather than
+// assembled (design review, /plan-design-review Pass 4 reflex check, T7).
+::selection {
+    background-color: rgba($primary, 0.25);
+    color: inherit;
+}
+
+:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 2px;
+}
+
+// Firefox
+* {
+    scrollbar-color: rgba($primary, 0.35) transparent;
+    scrollbar-width: thin;
+}
+
+// WebKit/Chromium
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background-color: rgba($primary, 0.35);
+    border-radius: $border-radius;
+    border: 2px solid transparent;
+    background-clip: content-box;
+
+    &:hover {
+        background-color: rgba($primary, 0.55);
+    }
+}
+
+.dark {
+    ::selection {
+        background-color: rgba($primary, 0.35);
+    }
+
+    * {
+        scrollbar-color: rgba($primary, 0.45) transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: rgba($primary, 0.45);
+
+        &:hover {
+            background-color: rgba($primary, 0.65);
+        }
+    }
+}
+
 @font-face {
     font-family: "Plex Sans";
     font-style: normal;

@@ -40,20 +40,34 @@
                     <span class="title">{{ appName }}</span>
                 </router-link>
 
-                <nav class="topnav-links">
-                    <router-link to="/dashboard" class="topnav-link" :style="{ order: $root.info.dashboardFirst === false ? 2 : 1 }">
+                <!-- Below ~900px the links move into a toggled drawer - the
+                     separate $root.isMobile branch already covers true phone
+                     widths (<=767.98px) with its own bottom-nav; this is only
+                     for the tablet/narrow-desktop band in between. -->
+                <button
+                    type="button"
+                    class="topnav-hamburger"
+                    :aria-label="$t(navOpen ? 'hideMenu' : 'showMenu')"
+                    :aria-expanded="navOpen"
+                    @click="navOpen = !navOpen"
+                >
+                    <font-awesome-icon :icon="navOpen ? 'times' : 'bars'" />
+                </button>
+
+                <nav class="topnav-links" :class="{ 'topnav-links-open': navOpen }" :aria-label="$t('Main')">
+                    <router-link to="/dashboard" class="topnav-link" :style="{ order: $root.info.dashboardFirst === false ? 2 : 1 }" @click="navOpen = false">
                         <font-awesome-icon icon="tachometer-alt" />
                         {{ $t("Dashboard") }}
                     </router-link>
-                    <router-link to="/map" class="topnav-link" :style="{ order: $root.info.dashboardFirst === false ? 1 : 2 }">
+                    <router-link to="/map" class="topnav-link" :style="{ order: $root.info.dashboardFirst === false ? 1 : 2 }" @click="navOpen = false">
                         <font-awesome-icon icon="map-marker-alt" />
                         {{ $t("Network Map") }}
                     </router-link>
-                    <router-link to="/list" class="topnav-link" style="order: 3">
+                    <router-link to="/list" class="topnav-link" style="order: 3" @click="navOpen = false">
                         <font-awesome-icon icon="list" />
                         {{ $t("List") }}
                     </router-link>
-                    <router-link to="/manage-status-page" class="topnav-link" style="order: 4">
+                    <router-link to="/manage-status-page" class="topnav-link" style="order: 4" @click="navOpen = false">
                         <font-awesome-icon icon="stream" />
                         {{ $t("Status Pages") }}
                     </router-link>
@@ -159,7 +173,7 @@
 
         <!-- Mobile Only -->
         <div v-if="$root.isMobile" style="width: 100%; height: calc(60px + env(safe-area-inset-bottom))" />
-        <nav v-if="$root.isMobile && $root.loggedIn" class="bottom-nav">
+        <nav v-if="$root.isMobile && $root.loggedIn" class="bottom-nav" :aria-label="$t('Main')">
             <router-link to="/dashboard" class="nav-link">
                 <div><font-awesome-icon icon="tachometer-alt" /></div>
                 {{ $t("Home") }}
@@ -215,6 +229,9 @@ export default {
             toastContainerObserver: null,
             licenseStatus: null,
             globalSearchText: "",
+            // Tablet/narrow-desktop nav drawer toggle (below ~900px) - see
+            // the topnav-hamburger comment in the template.
+            navOpen: false,
         };
     },
 
@@ -382,10 +399,59 @@ $app-header-height: 56px;
     flex-shrink: 0;
 }
 
+// Hidden by default (desktop-width links show inline); becomes the drawer
+// trigger below $topnav-collapse-breakpoint. True phone widths never reach
+// here - $root.isMobile's separate bottom-nav branch covers those.
+$topnav-collapse-breakpoint: 900px;
+
+.topnav-hamburger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+    color: $secondary-text;
+    cursor: pointer;
+    font-size: 16px;
+
+    .dark & {
+        color: $dark-font-color;
+    }
+
+    @media (max-width: $topnav-collapse-breakpoint) {
+        display: flex;
+    }
+}
+
 .topnav-links {
     display: flex;
     gap: 2px;
     flex-shrink: 0;
+
+    @media (max-width: $topnav-collapse-breakpoint) {
+        display: none;
+        position: absolute;
+        top: $app-header-height;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid $card-border-color;
+        padding: 8px;
+        z-index: 20;
+
+        .dark & {
+            background-color: $dark-header-bg;
+            border-bottom-color: $dark-border-color;
+        }
+
+        &.topnav-links-open {
+            display: flex;
+        }
+    }
 }
 
 .topnav-link {
@@ -393,6 +459,7 @@ $app-header-height: 56px;
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
+    min-height: 44px;
     border-radius: $border-radius;
     border-bottom: 2px solid transparent;
     color: $secondary-text;
@@ -415,6 +482,16 @@ $app-header-height: 56px;
         border-bottom-color: $primary;
         color: $primary;
         font-weight: 600;
+    }
+
+    @media (max-width: $topnav-collapse-breakpoint) {
+        border-bottom: none;
+        border-left: 3px solid transparent;
+
+        &.active {
+            border-left-color: $primary;
+            border-bottom-color: transparent;
+        }
     }
 }
 
@@ -476,8 +553,8 @@ $app-header-height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: 44px;
+    height: 44px;
     flex-shrink: 0;
     border-radius: $border-radius;
     color: $primary;
@@ -490,6 +567,9 @@ $app-header-height: 56px;
     .profile-trigger {
         display: flex;
         align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
         border: none;
         background: transparent;
         padding: 0;
